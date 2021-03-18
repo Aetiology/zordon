@@ -17,7 +17,7 @@ fn dos_hdr() -> Result<(), ()> {
     let dos_hdr = DosHeader::new(&mut buff)
         .map_err(|e| eprintln!("{}", fmt_err!("Could not create DosHeader: {}", e)))?;
 
-    assert_eq_hex!(dos_hdr.mz_sig.val(), 0x5A4D);
+    assert_eq_hex!(*dos_hdr.mz_sig.val(), 0x5A4D);
 
     Ok(())
 }
