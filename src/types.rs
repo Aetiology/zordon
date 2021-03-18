@@ -4,6 +4,30 @@ use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Read, Write};
 
+pub struct ArrayVal<const L: usize> {
+    val: [u8; L],
+    offset: u64,
+}
+
+impl<const L: usize> ArrayVal<L>
+where
+    [u8; L]: Default,
+{
+    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, String> {
+        let mut buf: [u8; L] = Default::default();
+        let offset = reader.stream_position().map_err(|e| fmt_err!("{}", e))?;
+
+        reader
+            .read_exact(&mut buf)
+            .map_err(|e| fmt_err!("Could not read bytes into buff: {}", e))?;
+
+        Ok(Self {
+            val: buf,
+            offset,
+        })
+    }
+}
+
 pub struct PrimVal<T>
 where
     T: Copy,
@@ -33,13 +57,20 @@ where
     }
 
     fn seek_to_val<S: Seek>(&mut self, seeker: &mut S) -> Result<u64, String> {
-        seeker.seek(SeekFrom::Start(self.offset)).map_err(|e| fmt_err!("Failed to seek to offset: {} for val: {} - {}", self.offset, self.val, e))
+        seeker.seek(SeekFrom::Start(self.offset)).map_err(|e| {
+            fmt_err!(
+                "Failed to seek to offset: {} for val: {} - {}",
+                self.offset,
+                self.val,
+                e
+            )
+        })
     }
 
     fn seek_write<W: Write + Seek>(&mut self, writer: &mut W) -> Result<(), String> {
         self.seek_to_val(writer)?;
         Self::write(writer, self.val)
-    } 
+    }
 
     pub fn set<W: Write + Seek>(&mut self, writer: &mut W, val: T) -> Result<(), String> {
         self.val = val;
