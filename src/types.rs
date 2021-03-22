@@ -5,7 +5,8 @@ use std::io::SeekFrom;
 use std::io::{Read, Write};
 use std::ops::AddAssign;
 use std::ops::{Deref, DerefMut};
-pub trait GenValMod<T> {
+
+pub trait ModGenVal<T> {
     fn read<R: Read + Seek>(reader: &mut R) -> Result<T, String>;
     fn write<W: Write + Seek>(writer: &mut W, val: &T) -> Result<(), String>;
     fn add_val(&mut self, val: T);
@@ -19,7 +20,7 @@ pub struct GenVal<T> {
 impl<T> GenVal<T>
 where
     T: std::fmt::Debug,
-    GenVal<T>: GenValMod<T>,
+    GenVal<T>: ModGenVal<T>,
 {
     pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, String> {
         let offset = reader.stream_position().map_err(|e| fmt_err!("{}", e))?;
@@ -65,7 +66,7 @@ where
     }
 }
 
-impl<T, const L: usize> GenValMod<[u8; L]> for GenVal<T>
+impl<T, const L: usize> ModGenVal<[u8; L]> for GenVal<T>
 where
     [u8; L]: Default,
 {
@@ -96,7 +97,37 @@ where
     }
 }
 
-impl GenValMod<u16> for GenVal<u16> {
+impl ModGenVal<u8> for GenVal<u8> {
+    fn read<R: Read + Seek>(reader: &mut R) -> Result<u8, String> {
+        let r = reader.read_u8().map_err(|e| {
+            fmt_err!(
+                "Failed to read u8 val at: {:#?} - {}",
+                reader.stream_position(),
+                e
+            )
+        })?;
+
+        Ok(r)
+    }
+
+    fn write<W: Write + Seek>(writer: &mut W, val: &u8) -> Result<(), String> {
+        writer.write_u8(*val).map_err(|e| {
+            fmt_err!(
+                "Failed to write u8 val at: {:#?} - {}",
+                writer.stream_position(),
+                e
+            )
+        })?;
+
+        Ok(())
+    }
+
+    fn add_val(&mut self, val: u8) {
+        self.val += val
+    }
+}
+
+impl ModGenVal<u16> for GenVal<u16> {
     fn read<R: Read + Seek>(reader: &mut R) -> Result<u16, String> {
         let r = reader.read_u16::<LittleEndian>().map_err(|e| {
             fmt_err!(
@@ -126,7 +157,7 @@ impl GenValMod<u16> for GenVal<u16> {
     }
 }
 
-impl GenValMod<u32> for GenVal<u32> {
+impl ModGenVal<u32> for GenVal<u32> {
     fn write<W: Write + Seek>(writer: &mut W, val: &u32) -> Result<(), String> {
         writer.write_u32::<LittleEndian>(*val).map_err(|e| {
             fmt_err!(
@@ -152,6 +183,36 @@ impl GenValMod<u32> for GenVal<u32> {
     }
 
     fn add_val(&mut self, val: u32) {
+        self.val += val
+    }
+}
+
+impl ModGenVal<u64> for GenVal<u64> {
+    fn write<W: Write + Seek>(writer: &mut W, val: &u64) -> Result<(), String> {
+        writer.write_u64::<LittleEndian>(*val).map_err(|e| {
+            fmt_err!(
+                "Failed to write u32 val at: {:#?} - {}",
+                writer.stream_position(),
+                e
+            )
+        })?;
+
+        Ok(())
+    }
+
+    fn read<R: Read + Seek>(reader: &mut R) -> Result<u64, String> {
+        let r = reader.read_u64::<LittleEndian>().map_err(|e| {
+            fmt_err!(
+                "Failed to read u32 val at: {:#?} - {}",
+                reader.stream_position(),
+                e
+            )
+        })?;
+
+        Ok(r)
+    }
+
+    fn add_val(&mut self, val: u64) {
         self.val += val
     }
 }
