@@ -2,10 +2,12 @@ use crate::fmt_err;
 use crate::types::*;
 use std::io::prelude::*;
 use std::io::{Read, Write};
+use derive_header::HeaderNew;
 
 const RESERVED_0_SIZE: usize = 4;
 const RESERVED_1_SIZE: usize = 10;
 
+#[derive(HeaderNew)]
 pub struct DosHeader {
     pub mz_sig: GenVal<u16>,
     pub used_bytes_in_last_page: GenVal<u16>,
@@ -28,6 +30,7 @@ pub struct DosHeader {
     pub addr_of_new_exe_hdr: GenVal<u32>,
 }
 
+/*
 impl DosHeader {
     pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, String> {
         Ok(Self {
@@ -53,3 +56,4 @@ impl DosHeader {
         })
     }
 }
+*/
