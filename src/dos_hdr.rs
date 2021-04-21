@@ -2,12 +2,14 @@ use crate::fmt_err;
 use crate::types::*;
 use std::io::prelude::*;
 use std::io::{Read, Write};
-use derive_header::HeaderNew;
+use derive_header::GenValNew;
+#[macro_use]
+use assert_hex::assert_eq_hex;
 
 const RESERVED_0_SIZE: usize = 4;
 const RESERVED_1_SIZE: usize = 10;
 
-#[derive(HeaderNew)]
+#[derive(GenValNew)]
 pub struct DosHeader {
     pub mz_sig: GenVal<u16>,
     pub used_bytes_in_last_page: GenVal<u16>,
@@ -29,6 +31,24 @@ pub struct DosHeader {
     pub reserved_1: GenVal<[u8; RESERVED_1_SIZE]>,
     pub addr_of_new_exe_hdr: GenVal<u32>,
 }
+
+#[test]
+fn dos_hdr_new() -> Result<(), ()> {
+    const TEST_PE: &str = "test_data/basic_test.exe";
+
+    let pe: Vec<u8> = std::fs::read(TEST_PE)
+        .map_err(|e| eprintln!("{}", fmt_err!("Could not read file: {} - {}", TEST_PE, e)))?;
+
+    let mut buf = std::io::Cursor::new(pe);
+
+    let dos_hdr = DosHeader::new(&mut buf)
+        .map_err(|e| eprintln!("{}", fmt_err!("Could not create DosHeader: {}", e)))?;
+
+    assert_eq_hex!(*dos_hdr.mz_sig.val(), 0x5A4D);
+
+    Ok(())
+}
+
 
 /*
 impl DosHeader {

@@ -2,13 +2,15 @@ use crate::fmt_err;
 use crate::types::*;
 use std::io::prelude::*;
 use std::io::{Read, Write};
+use derive_header::GenValNew;
 
+#[derive(GenValNew)]
 pub struct NtHeader {
     pub sig: GenVal<u16>,
     pub file_hdr: FileHeader,
     pub opt_hdr: OptHeader,
 }
-
+#[derive(GenValNew)]
 pub struct FileHeader {
     pub machine: GenVal<u16>,
     pub num_of_secs: GenVal<u16>,
@@ -18,7 +20,7 @@ pub struct FileHeader {
     pub opt_hdr_size: GenVal<u16>,
     pub file_characteristics: GenVal<u16>, // TODO: Think about making this into bitfields struct
 }
-
+#[derive(GenValNew)]
 pub struct OptHeader {
     pub magic: GenVal<u16>,
     pub major_linker_ver: GenVal<u8>,
@@ -51,7 +53,7 @@ pub struct OptHeader {
     pub num_of_rva_and_sizes: GenVal<u32>,
     pub data_directories: DataDirectories,
 }
-
+#[derive(GenValNew)]
 pub struct DataDirectories {
     pub export: Option<DataDirectory>,
     pub import: Option<DataDirectory>,
@@ -70,7 +72,7 @@ pub struct DataDirectories {
     pub com_descriptor: Option<DataDirectory>,
     pub reserved: Option<DataDirectory>,
 }
-
+#[derive(GenValNew)]
 pub struct DataDirectory {
     pub virtual_addr: GenVal<u32>,
     pub size: GenVal<u32>,
