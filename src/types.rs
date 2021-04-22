@@ -1,10 +1,11 @@
 use crate::fmt_err;
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
+use derive_header::GenValNew;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Read, Write};
-use std::ops::AddAssign;
-use std::ops::{Deref, DerefMut};
+#[macro_use]
+use assert_hex::assert_eq_hex;
 
 pub trait ModGenVal<T> {
     fn read<R: Read + Seek>(reader: &mut R) -> Result<T, String>;
@@ -215,4 +216,33 @@ impl ModGenVal<u64> for GenVal<u64> {
     fn add_val(&mut self, val: u64) {
         self.val += val
     }
+}
+
+#[derive(GenValNew)]
+struct GenValTest {
+    pub unsigned_8: GenVal<u8>,
+    pub unsigned_16: GenVal<u16>,
+    pub unsigned_32: GenVal<u32>,
+    pub unsigned_64: GenVal<u64>,
+    pub unsigned_u8_arr: GenVal<[u8; 4]>,
+}
+
+const GENVAL_TESTDATA: [u8; 0x13] = [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13,
+];
+
+#[test]
+fn genval_val() -> Result<(), ()> {
+    let mut data = GENVAL_TESTDATA.to_vec();
+    let mut buf = std::io::Cursor::new(data);
+
+    let genvaltest = GenValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
+
+    assert_eq_hex!(*genvaltest.unsigned_8.val(), 01);
+    assert_eq_hex!(*genvaltest.unsigned_16.val(), 0x0302);
+    assert_eq_hex!(*genvaltest.unsigned_32.val(), 0x07060504);
+    assert_eq_hex!(*genvaltest.unsigned_64.val(), 0x0F0E0D0C0B0A0908);
+    assert_eq_hex!(*genvaltest.unsigned_u8_arr.val(), [0x10, 0x11, 0x12, 0x13]);
+
+    Ok(())
 }

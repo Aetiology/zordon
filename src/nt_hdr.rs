@@ -10,6 +10,7 @@ pub struct NtHeader {
     pub file_hdr: FileHeader,
     pub opt_hdr: OptHeader,
 }
+
 #[derive(GenValNew)]
 pub struct FileHeader {
     pub machine: GenVal<u16>,

@@ -1,13 +1,11 @@
 use crate::fmt_err;
 use crate::types::*;
+use derive_header::GenValNew;
 use std::io::prelude::*;
 use std::io::{Read, Write};
-use derive_header::GenValNew;
-#[macro_use]
-use assert_hex::assert_eq_hex;
 
-const RESERVED_0_SIZE: usize = 4;
-const RESERVED_1_SIZE: usize = 10;
+const RESERVED_0_SIZE: usize = 8;
+const RESERVED_1_SIZE: usize = 0x14;
 
 #[derive(GenValNew)]
 pub struct DosHeader {
@@ -18,7 +16,7 @@ pub struct DosHeader {
     pub header_size_in_paragraphs: GenVal<u16>,
     pub min_extra_paragraphs: GenVal<u16>,
     pub max_extra_paragraphs: GenVal<u16>,
-    pub initial_relative_ss_: GenVal<u16>,
+    pub initial_relative_ss: GenVal<u16>,
     pub initial_sp: GenVal<u16>,
     pub checksum: GenVal<u16>,
     pub initial_ip: GenVal<u16>,
@@ -31,49 +29,3 @@ pub struct DosHeader {
     pub reserved_1: GenVal<[u8; RESERVED_1_SIZE]>,
     pub addr_of_new_exe_hdr: GenVal<u32>,
 }
-
-#[test]
-fn dos_hdr_new() -> Result<(), ()> {
-    const TEST_PE: &str = "test_data/basic_test.exe";
-
-    let pe: Vec<u8> = std::fs::read(TEST_PE)
-        .map_err(|e| eprintln!("{}", fmt_err!("Could not read file: {} - {}", TEST_PE, e)))?;
-
-    let mut buf = std::io::Cursor::new(pe);
-
-    let dos_hdr = DosHeader::new(&mut buf)
-        .map_err(|e| eprintln!("{}", fmt_err!("Could not create DosHeader: {}", e)))?;
-
-    assert_eq_hex!(*dos_hdr.mz_sig.val(), 0x5A4D);
-
-    Ok(())
-}
-
-
-/*
-impl DosHeader {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, String> {
-        Ok(Self {
-            mz_sig: GenVal::new(reader)?,
-            used_bytes_in_last_page: GenVal::new(reader)?,
-            file_size_in_pages: GenVal::new(reader)?,
-            num_of_reloc_items: GenVal::new(reader)?,
-            header_size_in_paragraphs: GenVal::new(reader)?,
-            min_extra_paragraphs: GenVal::new(reader)?,
-            max_extra_paragraphs: GenVal::new(reader)?,
-            initial_relative_ss_: GenVal::new(reader)?,
-            initial_sp: GenVal::new(reader)?,
-            checksum: GenVal::new(reader)?,
-            initial_ip: GenVal::new(reader)?,
-            initial_relative_cs: GenVal::new(reader)?,
-            addr_of_reloc_table: GenVal::new(reader)?,
-            overlay_number: GenVal::new(reader)?,
-            reserved_0: GenVal::new(reader)?,
-            oem_id: GenVal::new(reader)?,
-            oem_info: GenVal::new(reader)?,
-            reserved_1: GenVal::new(reader)?,
-            addr_of_new_exe_hdr: GenVal::new(reader)?,
-        })
-    }
-}
-*/
