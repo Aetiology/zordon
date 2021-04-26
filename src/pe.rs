@@ -80,3 +80,5 @@ impl Pe {
         Ok(((*self.entry_sec_ref()?.size_of_raw_data.val() / 0x1000) + 1) * 0x1000)
     }
 }
+
+//Tests
