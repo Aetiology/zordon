@@ -248,6 +248,55 @@ fn genval_val() -> Result<(), ()> {
 }
 
 #[test]
+fn genval_set() -> Result<(), ()> {
+    let data = GENVAL_TESTDATA.to_vec();
+    let mut buf = std::io::Cursor::new(data);
+
+    let mut genvaltest = GenValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
+
+    genvaltest
+        .unsigned_8
+        .set(&mut buf, 0x13)
+        .map_err(|e| eprintln!("{}", e))?;
+
+    genvaltest
+        .unsigned_16
+        .set(&mut buf, 0x1112)
+        .map_err(|e| eprintln!("{}", e))?;
+
+    genvaltest
+        .unsigned_32
+        .set(&mut buf, 0x0D0E0F10)
+        .map_err(|e| eprintln!("{}", e))?;
+
+    genvaltest
+        .unsigned_64
+        .set(&mut buf, 0x05060708090A0B0C)
+        .map_err(|e| eprintln!("{}", e))?;
+
+    genvaltest
+        .unsigned_u8_arr
+        .set(&mut buf, [04, 03, 02, 01])
+        .map_err(|e| eprintln!("{}", e))?;
+
+    let data_ref = buf.get_ref();
+
+    assert_eq_hex!(data_ref[0], 0x13);
+    assert_eq_hex!(data_ref[1..3], [0x12, 0x11]);
+    assert_eq_hex!(data_ref[3..7], [0x10, 0xF, 0xE, 0xD]);
+    assert_eq_hex!(data_ref[7..15], [0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5]);
+    assert_eq_hex!(data_ref[15..19], [0x4, 0x3, 0x2, 0x1]);
+
+    assert_eq_hex!(*genvaltest.unsigned_8.val(), 0x13);
+    assert_eq_hex!(*genvaltest.unsigned_16.val(), 0x1112);
+    assert_eq_hex!(*genvaltest.unsigned_32.val(), 0x0D0E0F10);
+    assert_eq_hex!(*genvaltest.unsigned_64.val(), 0x05060708090A0B0C);
+    assert_eq_hex!(*genvaltest.unsigned_u8_arr.val(), [0x4, 0x3, 0x2, 0x1]);
+
+    Ok(())
+}
+
+#[test]
 fn genval_add() -> Result<(), ()> {
     let data = GENVAL_TESTDATA.to_vec();
     let mut buf = std::io::Cursor::new(data);
