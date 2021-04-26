@@ -1,6 +1,6 @@
 use crate::fmt_err;
 use crate::types::*;
-use crate::{dos_hdr::DosHeader, sec_hdr::SectionHeader nt_hdr::*};
+use crate::{dos_hdr::DosHeader, nt_hdr::*, sec_hdr::SectionHeader};
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Read, Write};
@@ -21,13 +21,32 @@ impl Pe {
 
         let nt_hdr = NtHeader::new(reader)?;
 
-        let sec_hdrs: Vec<SectionHeader> = Vec::new();
+        let mut sec_hdrs: Vec<SectionHeader> = Vec::new();
         let num_of_secs = *nt_hdr.file_hdr.num_of_secs.val();
 
-        for _  in 0..num_of_secs{
+        for _ in 0..num_of_secs {
             sec_hdrs.push(SectionHeader::new(reader)?)
         }
 
-        Ok(Self { dos_hdr, nt_hdr, sec_hdrs })
+        Ok(Self {
+            dos_hdr,
+            nt_hdr,
+            sec_hdrs,
+        })
+    }
+
+    pub fn entry_section_index(&self, section_va: u32) -> Result<usize, String> {
+        for (i, s) in self.sec_hdrs.iter().enumerate() {
+            if (*s.virt_addr.val() <= section_va)
+                && ((*s.virt_addr.val() + *s.virt_size.val()) > section_va)
+            {
+                return Ok(i);
+            }
+        }
+
+        Err(fmt_err!(
+            "Could not find section with va: {:#X}",
+            section_va
+        ))
     }
 }
