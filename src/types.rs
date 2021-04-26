@@ -248,50 +248,42 @@ fn genval_val() -> Result<(), ()> {
 }
 
 #[test]
-fn genval_set() -> Result<(), ()> {
+fn genval_add() -> Result<(), ()> {
     let data = GENVAL_TESTDATA.to_vec();
     let mut buf = std::io::Cursor::new(data);
 
     let mut genvaltest = GenValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
+    const VAL_TO_ADD: u8 = 0x10;
+
+    // For the moment, we are not using Add for arrays
 
     genvaltest
         .unsigned_8
-        .set(&mut buf, 0x13)
+        .add(&mut buf, VAL_TO_ADD)
         .map_err(|e| eprintln!("{}", e))?;
 
     genvaltest
         .unsigned_16
-        .set(&mut buf, 0x1112)
+        .add(&mut buf, VAL_TO_ADD as u16)
         .map_err(|e| eprintln!("{}", e))?;
 
     genvaltest
         .unsigned_32
-        .set(&mut buf, 0x0D0E0F10)
+        .add(&mut buf, VAL_TO_ADD as u32)
         .map_err(|e| eprintln!("{}", e))?;
 
     genvaltest
         .unsigned_64
-        .set(&mut buf, 0x05060708090A0B0C)
-        .map_err(|e| eprintln!("{}", e))?;
-
-    genvaltest
-        .unsigned_u8_arr
-        .set(&mut buf, [04, 03, 02, 01])
+        .add(&mut buf, VAL_TO_ADD as u64)
         .map_err(|e| eprintln!("{}", e))?;
 
     let data_ref = buf.get_ref();
 
-    assert_eq_hex!(data_ref[0], 0x13);
-    assert_eq_hex!(data_ref[1..3], [0x12, 0x11]);
-    assert_eq_hex!(data_ref[3..7], [0x10, 0xF, 0xE, 0xD]);
-    assert_eq_hex!(data_ref[7..15], [0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5]);
-    assert_eq_hex!(data_ref[15..19], [0x4, 0x3, 0x2, 0x1]);
-
-    assert_eq_hex!(*genvaltest.unsigned_8.val(), 0x13);
-    assert_eq_hex!(*genvaltest.unsigned_16.val(), 0x1112);
-    assert_eq_hex!(*genvaltest.unsigned_32.val(), 0x0D0E0F10);
-    assert_eq_hex!(*genvaltest.unsigned_64.val(), 0x05060708090A0B0C);
-    assert_eq_hex!(*genvaltest.unsigned_u8_arr.val(), [0x4, 0x3, 0x2, 0x1]);
+    assert_eq_hex!(data_ref[0], 0x11);
+    assert_eq_hex!(LittleEndian::read_u16(&data_ref[1..3]), 0x0312);
+    assert_eq_hex!(LittleEndian::read_u32(&data_ref[3..7]), 0x07060514);
+    assert_eq_hex!(LittleEndian::read_u64(&data_ref[7..15]), 0x0F0E0D0C0B0A0918);
+    //assert_eq_hex!(data_ref[15..19], [0x4, 0x3, 0x2, 0x1]);
 
     Ok(())
 }
