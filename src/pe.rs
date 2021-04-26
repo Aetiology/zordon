@@ -58,13 +58,20 @@ impl Pe {
         Ok(&self.sec_hdrs[self.entry_sec_index()?])
     }
 
-    pub fn entry_sec_refmut(&self) -> Result<&SectionHeader, String> {
-        Ok(&self.sec_hdrs[self.entry_sec_index()?])
+    pub fn entry_sec_refmut(&mut self) -> Result<&mut SectionHeader, String> {
+        let entry_sec_index = self.entry_sec_index()?;
+        Ok(&mut self.sec_hdrs[entry_sec_index])
     }
 
     pub fn entry_ip(&self) -> Result<u64, String> {
         Ok(*self.nt_hdr.opt_hdr.image_base.val() + *self.entry_sec_ref()?.virt_addr.val() as u64)
     }
 
-    //pub fn entry_disk_offset(&self) -> Result<usize, String> {}
+    /*
+    pub fn entry_disk_offset(&self) -> Result<usize, String> {
+        let entry_rel_offset = *self.nt_hdr.opt_hdr.addr_of_entrypoint.val() +
+
+        Ok(*self.entry_sec_ref()?.ptr_to_raw_dat)
+    }
+    */
 }
