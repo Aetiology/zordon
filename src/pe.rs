@@ -54,6 +54,11 @@ impl Pe {
         self.virt_addr_to_sec_index(*self.nt_hdr.opt_hdr.addr_of_entrypoint.val())
     }
 
+    pub fn entry_rel_sec_offset(&self) -> Result<usize, String> {
+        Ok(*self.nt_hdr.opt_hdr.addr_of_entrypoint.val() as usize
+            - *self.entry_sec_ref()?.virt_addr.val() as usize)
+    }
+
     pub fn entry_sec_ref(&self) -> Result<&SectionHeader, String> {
         Ok(&self.sec_hdrs[self.entry_sec_index()?])
     }
@@ -66,10 +71,9 @@ impl Pe {
     pub fn entry_ip(&self) -> Result<u64, String> {
         Ok(*self.nt_hdr.opt_hdr.image_base.val() + *self.entry_sec_ref()?.virt_addr.val() as u64)
     }
-
     /*
     pub fn entry_disk_offset(&self) -> Result<usize, String> {
-        let entry_rel_offset = *self.nt_hdr.opt_hdr.addr_of_entrypoint.val() +
+        let entry_rel_offset =  +
 
         Ok(*self.entry_sec_ref()?.ptr_to_raw_dat)
     }
