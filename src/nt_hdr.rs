@@ -75,7 +75,7 @@ pub struct DataDirectories {
 }
 #[derive(GenValNew)]
 pub struct DataDirectory {
-    pub virtual_addr: GenVal<u32>,
+    pub virt_addr: GenVal<u32>,
     pub size: GenVal<u32>,
 }
 

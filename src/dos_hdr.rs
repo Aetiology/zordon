@@ -4,9 +4,6 @@ use derive_header::GenValNew;
 use std::io::prelude::*;
 use std::io::{Read, Write};
 
-const RESERVED_0_SIZE: usize = 8;
-const RESERVED_1_SIZE: usize = 0x14;
-
 #[derive(GenValNew)]
 pub struct DosHeader {
     pub mz_sig: GenVal<u16>,
@@ -23,9 +20,9 @@ pub struct DosHeader {
     pub initial_relative_cs: GenVal<u16>,
     pub addr_of_reloc_table: GenVal<u16>,
     pub overlay_number: GenVal<u16>,
-    pub reserved_0: GenVal<[u8; RESERVED_0_SIZE]>,
+    pub reserved_0: GenVal<[u8; 0x08]>,
     pub oem_id: GenVal<u16>,
     pub oem_info: GenVal<u16>,
-    pub reserved_1: GenVal<[u8; RESERVED_1_SIZE]>,
+    pub reserved_1: GenVal<[u8; 0x14]>,
     pub addr_of_new_exe_hdr: GenVal<u32>,
 }
