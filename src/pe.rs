@@ -71,11 +71,12 @@ impl Pe {
     pub fn entry_ip(&self) -> Result<u64, String> {
         Ok(*self.nt_hdr.opt_hdr.image_base.val() + *self.entry_sec_ref()?.virt_addr.val() as u64)
     }
-    /*
-    pub fn entry_disk_offset(&self) -> Result<usize, String> {
-        let entry_rel_offset =  +
 
-        Ok(*self.entry_sec_ref()?.ptr_to_raw_dat)
+    pub fn entry_disk_offset(&self) -> Result<usize, String> {
+        Ok(*self.entry_sec_ref()?.ptr_to_raw_data.val() as usize + self.entry_rel_sec_offset()?)
     }
-    */
+
+    pub fn calc_entry_sec_virt_size(&self) -> Result<u32, String> {
+        Ok(((*self.entry_sec_ref()?.size_of_raw_data.val() / 0x1000) + 1) * 0x1000)
+    }
 }
