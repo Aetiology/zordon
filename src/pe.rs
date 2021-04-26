@@ -53,4 +53,9 @@ impl Pe {
     pub fn entry_sec_index(&self) -> Result<usize, String> {
         self.virt_addr_to_sec_index(*self.nt_hdr.opt_hdr.addr_of_entrypoint.val())
     }
+
+    pub fn entry_ip(&self) -> Result<u64, String> {
+        Ok(*self.nt_hdr.opt_hdr.image_base.val()
+            + *self.sec_hdrs[self.entry_sec_index()?].virt_addr.val() as u64)
+    }
 }
