@@ -35,7 +35,7 @@ impl Pe {
         })
     }
 
-    pub fn entry_section_index(&self, section_va: u32) -> Result<usize, String> {
+    pub fn virt_addr_to_sec_index(&self, section_va: u32) -> Result<usize, String> {
         for (i, s) in self.sec_hdrs.iter().enumerate() {
             if (*s.virt_addr.val() <= section_va)
                 && ((*s.virt_addr.val() + *s.virt_size.val()) > section_va)
@@ -48,5 +48,9 @@ impl Pe {
             "Could not find section with va: {:#X}",
             section_va
         ))
+    }
+
+    pub fn entry_sec_index(&self) -> Result<usize, String> {
+        self.virt_addr_to_sec_index(*self.nt_hdr.opt_hdr.addr_of_entrypoint.val())
     }
 }
