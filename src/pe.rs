@@ -1,11 +1,11 @@
 use crate::fmt_err;
 use crate::types::*;
 use crate::{dos_hdr::DosHeader, nt_hdr::*, sec_hdr::SectionHeader};
+#[cfg(test)]
+use pretty_assertions::assert_eq;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Cursor, Read, Write};
-#[cfg(test)]
-use pretty_assertions::assert_eq;
 
 pub struct PeHeader {
     pub dos_hdr: DosHeader,
@@ -158,6 +158,13 @@ fn entry_rel_sec_offset() {
 #[test]
 fn entry_sec_ref() {
     let mut pe_hdr = parse_test_pe().expect("");
+
+    pe_hdr
+        .nt_hdr
+        .opt_hdr
+        .addr_of_entrypoint
+        .set(&mut pe_hdr.rwbuf, 0x1500)
+        .expect("");
 
     pe_hdr.sec_hdrs[0]
         .virt_addr
