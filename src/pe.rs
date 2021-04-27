@@ -86,7 +86,7 @@ impl PeHeader {
 //Tests
 
 #[test]
-fn pe_virt_addr_to_sec_index() {
+fn virt_addr_to_sec_index() {
     let mut pe_hdr = parse_test_pe().expect("");
 
     pe_hdr.sec_hdrs[0]
@@ -116,7 +116,7 @@ fn pe_virt_addr_to_sec_index() {
 }
 
 #[test]
-fn pe_entry_sec_index() {
+fn entry_sec_index() {
     let mut pe_hdr = parse_test_pe().expect("");
 
     let new_entry_va = *pe_hdr.sec_hdrs[0].virt_addr;
@@ -131,7 +131,7 @@ fn pe_entry_sec_index() {
 }
 
 #[test]
-fn pe_entry_rel_sec_offset() {
+fn entry_rel_sec_offset() {
     let mut pe_hdr = parse_test_pe().unwrap();
 
     pe_hdr
@@ -152,6 +152,7 @@ fn pe_entry_rel_sec_offset() {
 
     assert_eq!(pe_hdr.entry_rel_sec_offset().ok(), None);
 }
+
 /*
 pub fn entry_sec_ref(&self) -> Result<&SectionHeader, String> {
     Ok(&self.sec_hdrs[self.entry_sec_index()?])
