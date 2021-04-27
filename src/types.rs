@@ -14,6 +14,7 @@ pub trait ModGenVal<T> {
     fn add_val(&mut self, val: T);
 }
 
+#[derive(Debug, PartialEq)]
 pub struct GenVal<T> {
     val: T,
     offset: u64,

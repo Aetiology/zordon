@@ -4,7 +4,7 @@ use derive_header::GenValNew;
 use std::io::prelude::*;
 use std::io::{Read, Write};
 
-#[derive(GenValNew)]
+#[derive(GenValNew, Debug, PartialEq)]
 pub struct SectionHeader {
     pub name: GenVal<[u8; 0x08]>,
     pub virt_size: GenVal<u32>,

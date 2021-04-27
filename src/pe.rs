@@ -4,6 +4,8 @@ use crate::{dos_hdr::DosHeader, nt_hdr::*, sec_hdr::SectionHeader};
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Cursor, Read, Write};
+#[cfg(test)]
+use pretty_assertions::assert_eq;
 
 pub struct PeHeader {
     pub dos_hdr: DosHeader,
@@ -151,6 +153,23 @@ fn entry_rel_sec_offset() {
         .unwrap();
 
     assert_eq!(pe_hdr.entry_rel_sec_offset().ok(), None);
+}
+
+#[test]
+fn entry_sec_ref() {
+    let mut pe_hdr = parse_test_pe().expect("");
+
+    pe_hdr.sec_hdrs[0]
+        .virt_addr
+        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .expect("");
+
+    pe_hdr.sec_hdrs[0]
+        .virt_size
+        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .expect("");
+
+    assert_eq!(*pe_hdr.entry_sec_ref().expect(""), pe_hdr.sec_hdrs[0]);
 }
 
 /*
