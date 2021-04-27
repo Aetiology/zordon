@@ -6,7 +6,7 @@ use derive_header::GenValNew;
 
 #[derive(GenValNew)]
 pub struct NtHeader {
-    pub sig: GenVal<u16>,
+    pub sig: GenVal<u32>,
     pub file_hdr: FileHeader,
     pub opt_hdr: OptHeader,
 }

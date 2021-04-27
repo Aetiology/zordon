@@ -86,14 +86,29 @@ impl PeHeader {
 }
 
 //Tests
+#[test]
+fn pe_entry_sec_index() -> Result<(), String> {
+    let mut pe_hdr = parse_test_pe()?;
+
+    let new_entry_va = *pe_hdr.sec_hdrs[0].virt_addr.val();
+    pe_hdr
+        .nt_hdr
+        .opt_hdr
+        .addr_of_entrypoint
+        .set(&mut pe_hdr.rwbuf, new_entry_va)?;
+
+    assert_eq!(pe_hdr.entry_sec_index()?, 0);
+
+    Ok(())
+}
+
 fn parse_test_pe() -> Result<PeHeader, String> {
     const TEST_PE: &str = "test_data/test_pe_hdr.bin";
 
     let pe_buf: Vec<u8> =
         std::fs::read(TEST_PE).map_err(|e| fmt_err!("Could not read file: {} - {}", TEST_PE, e))?;
 
-    let pe_hdr =
-        PeHeader::new(pe_buf).map_err(|e| fmt_err!("Could not create PeHeader: {}", e))?;
+    let pe_hdr = PeHeader::new(pe_buf).map_err(|e| fmt_err!("Could not create PeHeader: {}", e))?;
 
     Ok(pe_hdr)
 }
