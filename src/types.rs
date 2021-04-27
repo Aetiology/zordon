@@ -4,6 +4,7 @@ use derive_header::GenValNew;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Read, Write};
+use std::ops::Deref;
 #[macro_use]
 use assert_hex::assert_eq_hex;
 
@@ -16,6 +17,14 @@ pub trait ModGenVal<T> {
 pub struct GenVal<T> {
     val: T,
     offset: u64,
+}
+
+impl<T> Deref for GenVal<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.val
+    }
 }
 
 impl<T> GenVal<T>
@@ -32,7 +41,7 @@ where
         })
     }
 
-    pub fn val(&self) -> &T {
+    pub fn get_ref(&self) -> &T {
         &self.val
     }
 
@@ -238,11 +247,11 @@ fn genval_val() -> Result<(), ()> {
 
     let genvaltest = GenValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
 
-    assert_eq_hex!(*genvaltest.unsigned_8.val(), 01);
-    assert_eq_hex!(*genvaltest.unsigned_16.val(), 0x0302);
-    assert_eq_hex!(*genvaltest.unsigned_32.val(), 0x07060504);
-    assert_eq_hex!(*genvaltest.unsigned_64.val(), 0x0F0E0D0C0B0A0908);
-    assert_eq_hex!(*genvaltest.unsigned_u8_arr.val(), [0x10, 0x11, 0x12, 0x13]);
+    assert_eq_hex!(*genvaltest.unsigned_8, 01);
+    assert_eq_hex!(*genvaltest.unsigned_16, 0x0302);
+    assert_eq_hex!(*genvaltest.unsigned_32, 0x07060504);
+    assert_eq_hex!(*genvaltest.unsigned_64, 0x0F0E0D0C0B0A0908);
+    assert_eq_hex!(*genvaltest.unsigned_u8_arr, [0x10, 0x11, 0x12, 0x13]);
 
     Ok(())
 }
@@ -287,11 +296,11 @@ fn genval_set() -> Result<(), ()> {
     assert_eq_hex!(data_ref[7..15], [0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5]);
     assert_eq_hex!(data_ref[15..19], [0x4, 0x3, 0x2, 0x1]);
 
-    assert_eq_hex!(*genvaltest.unsigned_8.val(), 0x13);
-    assert_eq_hex!(*genvaltest.unsigned_16.val(), 0x1112);
-    assert_eq_hex!(*genvaltest.unsigned_32.val(), 0x0D0E0F10);
-    assert_eq_hex!(*genvaltest.unsigned_64.val(), 0x05060708090A0B0C);
-    assert_eq_hex!(*genvaltest.unsigned_u8_arr.val(), [0x4, 0x3, 0x2, 0x1]);
+    assert_eq_hex!(*genvaltest.unsigned_8, 0x13);
+    assert_eq_hex!(*genvaltest.unsigned_16, 0x1112);
+    assert_eq_hex!(*genvaltest.unsigned_32, 0x0D0E0F10);
+    assert_eq_hex!(*genvaltest.unsigned_64, 0x05060708090A0B0C);
+    assert_eq_hex!(*genvaltest.unsigned_u8_arr, [0x4, 0x3, 0x2, 0x1]);
 
     Ok(())
 }

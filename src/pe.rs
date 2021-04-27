@@ -19,13 +19,13 @@ impl PeHeader {
         let dos_hdr = DosHeader::new(&mut rwbuf)?;
 
         rwbuf
-            .seek(SeekFrom::Start(*dos_hdr.addr_of_new_exe_hdr.val() as u64))
+            .seek(SeekFrom::Start(*dos_hdr.addr_of_new_exe_hdr as u64))
             .map_err(|e| fmt_err!("Could not seek to nt header start: {}", e))?;
 
         let nt_hdr = NtHeader::new(&mut rwbuf)?;
 
         let mut sec_hdrs: Vec<SectionHeader> = Vec::new();
-        let num_of_secs = *nt_hdr.file_hdr.num_of_secs.val();
+        let num_of_secs = *nt_hdr.file_hdr.num_of_secs;
 
         for _ in 0..num_of_secs {
             sec_hdrs.push(SectionHeader::new(&mut rwbuf)?)
@@ -41,9 +41,7 @@ impl PeHeader {
 
     pub fn virt_addr_to_sec_index(&self, section_va: u32) -> Result<usize, String> {
         for (i, s) in self.sec_hdrs.iter().enumerate() {
-            if (*s.virt_addr.val() <= section_va)
-                && ((*s.virt_addr.val() + *s.virt_size.val()) > section_va)
-            {
+            if (*s.virt_addr <= section_va) && ((*s.virt_addr + *s.virt_size) > section_va) {
                 return Ok(i);
             }
         }
@@ -55,12 +53,12 @@ impl PeHeader {
     }
 
     pub fn entry_sec_index(&self) -> Result<usize, String> {
-        self.virt_addr_to_sec_index(*self.nt_hdr.opt_hdr.addr_of_entrypoint.val())
+        self.virt_addr_to_sec_index(*self.nt_hdr.opt_hdr.addr_of_entrypoint)
     }
 
     pub fn entry_rel_sec_offset(&self) -> Result<usize, String> {
-        Ok(*self.nt_hdr.opt_hdr.addr_of_entrypoint.val() as usize
-            - *self.entry_sec_ref()?.virt_addr.val() as usize)
+        Ok(*self.nt_hdr.opt_hdr.addr_of_entrypoint as usize
+            - *self.entry_sec_ref()?.virt_addr as usize)
     }
 
     pub fn entry_sec_ref(&self) -> Result<&SectionHeader, String> {
@@ -73,15 +71,15 @@ impl PeHeader {
     }
 
     pub fn entry_ip(&self) -> Result<u64, String> {
-        Ok(*self.nt_hdr.opt_hdr.image_base.val() + *self.entry_sec_ref()?.virt_addr.val() as u64)
+        Ok(*self.nt_hdr.opt_hdr.image_base + *self.entry_sec_ref()?.virt_addr as u64)
     }
 
     pub fn entry_disk_offset(&self) -> Result<usize, String> {
-        Ok(*self.entry_sec_ref()?.ptr_to_raw_data.val() as usize + self.entry_rel_sec_offset()?)
+        Ok(*self.entry_sec_ref()?.ptr_to_raw_data as usize + self.entry_rel_sec_offset()?)
     }
 
     pub fn calc_entry_sec_virt_size(&self) -> Result<u32, String> {
-        Ok(((*self.entry_sec_ref()?.size_of_raw_data.val() / 0x1000) + 1) * 0x1000)
+        Ok(((*self.entry_sec_ref()?.size_of_raw_data / 0x1000) + 1) * 0x1000)
     }
 }
 
@@ -119,7 +117,7 @@ fn pe_virt_addr_to_sec_index() -> Result<(), String> {
 fn pe_entry_sec_index() -> Result<(), String> {
     let mut pe_hdr = parse_test_pe()?;
 
-    let new_entry_va = *pe_hdr.sec_hdrs[0].virt_addr.val();
+    let new_entry_va = *pe_hdr.sec_hdrs[0].virt_addr;
     pe_hdr
         .nt_hdr
         .opt_hdr
