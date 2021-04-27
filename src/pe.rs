@@ -86,6 +86,35 @@ impl PeHeader {
 }
 
 //Tests
+
+#[test]
+fn pe_virt_addr_to_sec_index() -> Result<(), String> {
+    let mut pe_hdr = parse_test_pe()?;
+
+    pe_hdr.sec_hdrs[0]
+        .virt_addr
+        .set(&mut pe_hdr.rwbuf, 0x1000)?;
+
+    pe_hdr.sec_hdrs[0]
+        .virt_size
+        .set(&mut pe_hdr.rwbuf, 0x1000)?;
+
+    pe_hdr.sec_hdrs[1]
+        .virt_addr
+        .set(&mut pe_hdr.rwbuf, 0x2000)?;
+
+    pe_hdr.sec_hdrs[1]
+        .virt_size
+        .set(&mut pe_hdr.rwbuf, 0x1000)?;
+
+    //assert_eq!(pe_hdr.virt_addr_to_sec_index(0x500), Err(_));
+    assert_eq!(pe_hdr.virt_addr_to_sec_index(0x1000)?, 0);
+    assert_eq!(pe_hdr.virt_addr_to_sec_index(0x1500)?, 0);
+    assert_eq!(pe_hdr.virt_addr_to_sec_index(0x2000)?, 1);
+
+    Ok(())
+}
+
 #[test]
 fn pe_entry_sec_index() -> Result<(), String> {
     let mut pe_hdr = parse_test_pe()?;
