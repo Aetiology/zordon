@@ -105,7 +105,7 @@ fn pe_virt_addr_to_sec_index() -> Result<(), String> {
         .virt_size
         .set(&mut pe_hdr.rwbuf, 0x1000)?;
 
-    //assert_eq!(pe_hdr.virt_addr_to_sec_index(0x500), Err(_));
+    assert_eq!(pe_hdr.virt_addr_to_sec_index(0x0).ok(), None);
     assert_eq!(pe_hdr.virt_addr_to_sec_index(0x1000)?, 0);
     assert_eq!(pe_hdr.virt_addr_to_sec_index(0x1500)?, 0);
     assert_eq!(pe_hdr.virt_addr_to_sec_index(0x2000)?, 1);
