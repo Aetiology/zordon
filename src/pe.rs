@@ -3,35 +3,39 @@ use crate::types::*;
 use crate::{dos_hdr::DosHeader, nt_hdr::*, sec_hdr::SectionHeader};
 use std::io::prelude::*;
 use std::io::SeekFrom;
-use std::io::{Read, Write};
+use std::io::{Cursor, Read, Write};
 
-pub struct Pe {
+pub struct PeHeader {
     pub dos_hdr: DosHeader,
     pub nt_hdr: NtHeader,
     pub sec_hdrs: Vec<SectionHeader>,
+    pub rwbuf: Cursor<Vec<u8>>,
 }
 
-impl Pe {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, String> {
-        let dos_hdr = DosHeader::new(reader)?;
+impl PeHeader {
+    pub fn new(buf: Vec<u8>) -> Result<Self, String> {
+        let mut rwbuf = std::io::Cursor::new(buf);
 
-        reader
+        let dos_hdr = DosHeader::new(&mut rwbuf)?;
+
+        rwbuf
             .seek(SeekFrom::Start(*dos_hdr.addr_of_new_exe_hdr.val() as u64))
             .map_err(|e| fmt_err!("Could not seek to nt header start: {}", e))?;
 
-        let nt_hdr = NtHeader::new(reader)?;
+        let nt_hdr = NtHeader::new(&mut rwbuf)?;
 
         let mut sec_hdrs: Vec<SectionHeader> = Vec::new();
         let num_of_secs = *nt_hdr.file_hdr.num_of_secs.val();
 
         for _ in 0..num_of_secs {
-            sec_hdrs.push(SectionHeader::new(reader)?)
+            sec_hdrs.push(SectionHeader::new(&mut rwbuf)?)
         }
 
         Ok(Self {
             dos_hdr,
             nt_hdr,
             sec_hdrs,
+            rwbuf,
         })
     }
 
@@ -82,3 +86,14 @@ impl Pe {
 }
 
 //Tests
+fn parse_test_pe() -> Result<PeHeader, String> {
+    const TEST_PE: &str = "test_data/test_pe_hdr.bin";
+
+    let pe_buf: Vec<u8> =
+        std::fs::read(TEST_PE).map_err(|e| fmt_err!("Could not read file: {} - {}", TEST_PE, e))?;
+
+    let pe_hdr =
+        PeHeader::new(pe_buf).map_err(|e| fmt_err!("Could not create PeHeader: {}", e))?;
+
+    Ok(pe_hdr)
+}
