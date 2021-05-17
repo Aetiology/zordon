@@ -1,8 +1,8 @@
 use crate::fmt_err;
 use crate::types::*;
 use crate::{dos_hdr::DosHeader, nt_hdr::*, sec_hdr::SectionHeader};
-#[cfg(test)]
-use pretty_assertions::assert_eq;
+#[macro_use]
+use assert_hex::assert_eq_hex;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Cursor, Read, Write};
@@ -67,12 +67,7 @@ impl PeHeader {
         Ok(&self.sec_hdrs[self.entry_sec_index()?])
     }
 
-    pub fn entry_sec_refmut(&mut self) -> Result<&mut SectionHeader, String> {
-        let entry_sec_index = self.entry_sec_index()?;
-        Ok(&mut self.sec_hdrs[entry_sec_index])
-    }
-
-    pub fn entry_ip(&self) -> Result<u64, String> {
+    pub fn entry_sec_virt_ip(&self) -> Result<u64, String> {
         Ok(*self.nt_hdr.opt_hdr.image_base + *self.entry_sec_ref()?.virt_addr as u64)
     }
 
@@ -89,37 +84,37 @@ impl PeHeader {
 
 #[test]
 fn virt_addr_to_sec_index() {
-    let mut pe_hdr = parse_test_pe().expect("");
+    let mut pe_hdr = parse_test_pe().unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_addr
         .set(&mut pe_hdr.rwbuf, 0x1000)
-        .expect("");
+        .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_size
         .set(&mut pe_hdr.rwbuf, 0x1000)
-        .expect("");
+        .unwrap();
 
     pe_hdr.sec_hdrs[1]
         .virt_addr
         .set(&mut pe_hdr.rwbuf, 0x2000)
-        .expect("");
+        .unwrap();
 
     pe_hdr.sec_hdrs[1]
         .virt_size
         .set(&mut pe_hdr.rwbuf, 0x1000)
-        .expect("");
+        .unwrap();
 
-    assert_eq!(pe_hdr.virt_addr_to_sec_index(0x0).ok(), None);
-    assert_eq!(pe_hdr.virt_addr_to_sec_index(0x1000).ok(), Some(0));
-    assert_eq!(pe_hdr.virt_addr_to_sec_index(0x1500).ok(), Some(0));
-    assert_eq!(pe_hdr.virt_addr_to_sec_index(0x2000).ok(), Some(1));
+    assert_eq_hex!(pe_hdr.virt_addr_to_sec_index(0x0).ok(), None);
+    assert_eq_hex!(pe_hdr.virt_addr_to_sec_index(0x1000).ok(), Some(0));
+    assert_eq_hex!(pe_hdr.virt_addr_to_sec_index(0x1500).ok(), Some(0));
+    assert_eq_hex!(pe_hdr.virt_addr_to_sec_index(0x2000).ok(), Some(1));
 }
 
 #[test]
 fn entry_sec_index() {
-    let mut pe_hdr = parse_test_pe().expect("");
+    let mut pe_hdr = parse_test_pe().unwrap();
 
     let new_entry_va = *pe_hdr.sec_hdrs[0].virt_addr;
     pe_hdr
@@ -129,7 +124,7 @@ fn entry_sec_index() {
         .set(&mut pe_hdr.rwbuf, new_entry_va)
         .unwrap();
 
-    assert_eq!(pe_hdr.entry_sec_index().ok(), Some(0));
+    assert_eq_hex!(pe_hdr.entry_sec_index().ok(), Some(0));
 }
 
 #[test]
@@ -143,7 +138,7 @@ fn entry_rel_sec_offset() {
         .set(&mut pe_hdr.rwbuf, *pe_hdr.sec_hdrs[0].virt_addr + 0x100)
         .unwrap();
 
-    assert_eq!(pe_hdr.entry_rel_sec_offset().ok(), Some(0x100));
+    assert_eq_hex!(pe_hdr.entry_rel_sec_offset().ok(), Some(0x100));
 
     pe_hdr
         .nt_hdr
@@ -152,47 +147,60 @@ fn entry_rel_sec_offset() {
         .set(&mut pe_hdr.rwbuf, 0)
         .unwrap();
 
-    assert_eq!(pe_hdr.entry_rel_sec_offset().ok(), None);
+    assert_eq_hex!(pe_hdr.entry_rel_sec_offset().ok(), None);
 }
 
 #[test]
 fn entry_sec_ref() {
-    let mut pe_hdr = parse_test_pe().expect("");
+    let mut pe_hdr = parse_test_pe().unwrap();
 
     pe_hdr
         .nt_hdr
         .opt_hdr
         .addr_of_entrypoint
         .set(&mut pe_hdr.rwbuf, 0x1500)
-        .expect("");
+        .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_addr
         .set(&mut pe_hdr.rwbuf, 0x1000)
-        .expect("");
+        .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_size
         .set(&mut pe_hdr.rwbuf, 0x1000)
-        .expect("");
+        .unwrap();
 
-    assert_eq!(*pe_hdr.entry_sec_ref().expect(""), pe_hdr.sec_hdrs[0]);
+    assert_eq_hex!(*pe_hdr.entry_sec_ref().unwrap(), pe_hdr.sec_hdrs[0]);
+}
+
+#[test]
+pub fn entry_sec_virt_ip() {
+    let mut pe_hdr = parse_test_pe().unwrap();
+
+    pe_hdr
+        .nt_hdr
+        .opt_hdr
+        .addr_of_entrypoint
+        .set(&mut pe_hdr.rwbuf, 0x1500)
+        .unwrap();
+
+    pe_hdr.sec_hdrs[0]
+        .virt_addr
+        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .unwrap();
+
+    pe_hdr
+        .nt_hdr
+        .opt_hdr
+        .image_base
+        .set(&mut pe_hdr.rwbuf, 0x500000)
+        .unwrap();
+
+    assert_eq_hex!(pe_hdr.entry_sec_virt_ip().unwrap(), 0x501000)
 }
 
 /*
-pub fn entry_sec_ref(&self) -> Result<&SectionHeader, String> {
-    Ok(&self.sec_hdrs[self.entry_sec_index()?])
-}
-
-pub fn entry_sec_refmut(&mut self) -> Result<&mut SectionHeader, String> {
-    let entry_sec_index = self.entry_sec_index()?;
-    Ok(&mut self.sec_hdrs[entry_sec_index])
-}
-
-pub fn entry_ip(&self) -> Result<u64, String> {
-    Ok(*self.nt_hdr.opt_hdr.image_base + *self.entry_sec_ref()?.virt_addr as u64)
-}
-
 pub fn entry_disk_offset(&self) -> Result<usize, String> {
     Ok(*self.entry_sec_ref()?.ptr_to_raw_data as usize + self.entry_rel_sec_offset()?)
 }

@@ -243,7 +243,7 @@ const GENVAL_TESTDATA: [u8; 0x13] = [
 
 #[test]
 fn genval_val() -> Result<(), ()> {
-    let mut data = GENVAL_TESTDATA.to_vec();
+    let data = GENVAL_TESTDATA.to_vec();
     let mut buf = std::io::Cursor::new(data);
 
     let genvaltest = GenValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
