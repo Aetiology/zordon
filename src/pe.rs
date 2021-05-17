@@ -1,6 +1,6 @@
 use crate::fmt_err;
 use crate::types::*;
-use crate::{dos_hdr::DosHeader, nt_hdr::*, reloc::Relocations, sec_hdr::SectionHeader};
+use crate::{dos_hdr::DosHeader, nt_hdr::*, relocs::Relocations, sec_hdr::SectionHeader};
 #[macro_use]
 use assert_hex::assert_eq_hex;
 use std::io::prelude::*;
@@ -38,7 +38,7 @@ impl PeHeader {
             Some(base_relocs) => {
                 let reloc_table_disk_offset =
                     Self::rva_to_file_offset(&sec_hdrs, *base_relocs.virt_addr)?;
-                    
+
                 rwbuf
                     .seek(SeekFrom::Start(reloc_table_disk_offset as u64))
                     .map_err(|e| {
