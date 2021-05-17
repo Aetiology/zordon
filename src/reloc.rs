@@ -43,7 +43,7 @@ impl Relocations {
         let virt_addr = GenVal::new(reader)?;
         let size_of_block: GenVal<u32> = GenVal::new(reader)?;
 
-        let entry_count = ((*size_of_block.get_ref() - 8) / 2) as usize;
+        let entry_count = ((*size_of_block - 8) / 2) as usize;
         let mut block: Vec<GenVal<u16>> = Vec::with_capacity(entry_count);
 
         for _ in 0..entry_count {
@@ -77,15 +77,15 @@ fn relocations_new() {
 
     let relocs = Relocations::new(&mut buf).unwrap();
 
-    assert_eq_hex!(*relocs.virt_addr.get_ref(), 0x1000);
-    assert_eq_hex!(*relocs.size_of_block.get_ref(), 0x0C);
-    assert_eq_hex!(*relocs.block[0].get_ref(), 0x3017);
-    assert_eq_hex!(*relocs.block[1].get_ref(), 0x301F);
+    assert_eq_hex!(*relocs.virt_addr, 0x1000);
+    assert_eq_hex!(*relocs.size_of_block, 0x0C);
+    assert_eq_hex!(*relocs.block[0], 0x3017);
+    assert_eq_hex!(*relocs.block[1], 0x301F);
 
-    assert_eq!(Relocations::to_type(*relocs.block[0].get_ref()), RelocationType::ImageRelBasedHighLow);
-    assert_eq!(Relocations::to_type(*relocs.block[1].get_ref()), RelocationType::ImageRelBasedHighLow);
+    assert_eq!(Relocations::to_type(*relocs.block[0]), RelocationType::ImageRelBasedHighLow);
+    assert_eq!(Relocations::to_type(*relocs.block[1]), RelocationType::ImageRelBasedHighLow);
 
-    assert_eq!(Relocations::to_offset(*relocs.block[0].get_ref()), 0x17);
-    assert_eq!(Relocations::to_offset(*relocs.block[1].get_ref()), 0x1F);
+    assert_eq!(Relocations::to_offset(*relocs.block[0]), 0x17);
+    assert_eq!(Relocations::to_offset(*relocs.block[1]), 0x1F);
 }
 

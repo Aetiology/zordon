@@ -1,6 +1,6 @@
 use crate::fmt_err;
 use crate::types::*;
-use crate::{dos_hdr::DosHeader, nt_hdr::*, sec_hdr::SectionHeader};
+use crate::{dos_hdr::DosHeader, nt_hdr::*, reloc::Relocations, sec_hdr::SectionHeader};
 #[macro_use]
 use assert_hex::assert_eq_hex;
 use std::io::prelude::*;
@@ -11,6 +11,7 @@ pub struct PeHeader {
     pub dos_hdr: DosHeader,
     pub nt_hdr: NtHeader,
     pub sec_hdrs: Vec<SectionHeader>,
+    pub relocs: Option<Relocations>,
     pub rwbuf: Cursor<Vec<u8>>,
 }
 
@@ -33,12 +34,43 @@ impl PeHeader {
             sec_hdrs.push(SectionHeader::new(&mut rwbuf)?)
         }
 
+        let relocs = match &nt_hdr.opt_hdr.data_dirs.base_reloc {
+            Some(base_relocs) => {
+                let reloc_table_disk_offset =
+                    Self::rva_to_file_offset(&sec_hdrs, *base_relocs.virt_addr)?;
+                    
+                rwbuf
+                    .seek(SeekFrom::Start(reloc_table_disk_offset as u64))
+                    .map_err(|e| {
+                        fmt_err!(
+                            "Failed to seek to reloc table disk offset: {} - {}",
+                            reloc_table_disk_offset,
+                            e,
+                        )
+                    })?;
+
+                Some(Relocations::new(&mut rwbuf)?)
+            }
+            None => None,
+        };
+
         Ok(Self {
             dos_hdr,
             nt_hdr,
             sec_hdrs,
+            relocs,
             rwbuf,
         })
+    }
+
+    pub fn rva_to_file_offset(sec_hdrs: &Vec<SectionHeader>, rva: u32) -> Result<u32, String> {
+        for s in sec_hdrs.iter() {
+            if (*s.virt_addr <= rva) && ((*s.virt_addr + *s.virt_size) > rva) {
+                return Ok((rva - *s.virt_addr) + *s.ptr_to_raw_data);
+            }
+        }
+
+        Err(fmt_err!("Could find section rva resides in"))
     }
 
     pub fn virt_addr_to_sec_index(&self, section_va: u32) -> Result<usize, String> {

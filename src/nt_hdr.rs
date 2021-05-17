@@ -52,7 +52,7 @@ pub struct OptHeader {
     pub size_of_heap_commit: GenVal<u64>,
     pub loader_flags: GenVal<u32>,
     pub num_of_rva_and_sizes: GenVal<u32>,
-    pub data_directories: DataDirectories,
+    pub data_dirs: DataDirectories,
 }
 #[derive(GenValNew)]
 pub struct DataDirectories {
