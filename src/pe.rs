@@ -182,14 +182,13 @@ pub fn entry_sec_virt_ip() {
         .nt_hdr
         .opt_hdr
         .addr_of_entrypoint
-        .set(&mut pe_hdr.rwbuf, 0x1500)
+        .set(&mut pe_hdr.rwbuf, 0x1000)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_addr
         .set(&mut pe_hdr.rwbuf, 0x1000)
         .unwrap();
-
     pe_hdr
         .nt_hdr
         .opt_hdr
@@ -200,11 +199,36 @@ pub fn entry_sec_virt_ip() {
     assert_eq_hex!(pe_hdr.entry_sec_virt_ip().unwrap(), 0x501000)
 }
 
-/*
-pub fn entry_disk_offset(&self) -> Result<usize, String> {
-    Ok(*self.entry_sec_ref()?.ptr_to_raw_data as usize + self.entry_rel_sec_offset()?)
+#[test]
+pub fn entry_disk_offset() {
+    let mut pe_hdr = parse_test_pe().unwrap();
+
+    pe_hdr
+        .nt_hdr
+        .opt_hdr
+        .addr_of_entrypoint
+        .set(&mut pe_hdr.rwbuf, 0x1500)
+        .unwrap();
+
+    pe_hdr.sec_hdrs[0]
+        .virt_addr
+        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .unwrap();
+
+    pe_hdr.sec_hdrs[0]
+        .virt_size
+        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .unwrap();
+
+    pe_hdr.sec_hdrs[0]
+        .ptr_to_raw_data
+        .set(&mut pe_hdr.rwbuf, 0x400)
+        .unwrap();
+
+    assert_eq_hex!(pe_hdr.entry_disk_offset().unwrap(), 0x900);
 }
 
+/*
 pub fn calc_entry_sec_virt_size(&self) -> Result<u32, String> {
     Ok(((*self.entry_sec_ref()?.size_of_raw_data / 0x1000) + 1) * 0x1000)
 }
