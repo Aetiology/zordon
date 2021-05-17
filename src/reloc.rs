@@ -3,8 +3,10 @@ use crate::types::*;
 use derive_header::GenValNew;
 use std::io::prelude::*;
 use std::io::{Read, Write};
+#[macro_use]
+use assert_hex::assert_eq_hex;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RelocationType {
     // For now skip/ignore the other types
     ImageRelBasedAbsolute,
@@ -29,6 +31,7 @@ impl RelocationType {
     }
 }
 
+#[derive(PartialEq)]
 pub struct Relocations {
     pub virt_addr: GenVal<u32>,
     pub size_of_block: GenVal<u32>,
@@ -58,8 +61,8 @@ impl Relocations {
         RelocationType::new(((type_offset_pair & 0xF000) >> 12) as u8)
     }
 
-    pub fn to_offset(type_offset_pair: u16) -> RelocationType {
-        RelocationType::new((type_offset_pair & 0xFFF) as u8)
+    pub fn to_offset(type_offset_pair: u16) -> u16 {
+        type_offset_pair & 0xFFF
     }
 }
 
@@ -67,12 +70,22 @@ const RELOC_TESTDATA: [u8; 0x10] = [
     0, 0x10, 0, 0, 0x0C, 0, 0, 0, 0x17, 0x30, 0x1F, 0x30, 0, 0, 0, 0,
 ];
 
-/*
 #[test]
 fn relocations_new() {
     let reloc_data = RELOC_TESTDATA.to_vec();
     let mut buf = std::io::Cursor::new(reloc_data);
 
-    let relocs = Relocations::new()
+    let relocs = Relocations::new(&mut buf).unwrap();
+
+    assert_eq_hex!(*relocs.virt_addr.get_ref(), 0x1000);
+    assert_eq_hex!(*relocs.size_of_block.get_ref(), 0x0C);
+    assert_eq_hex!(*relocs.block[0].get_ref(), 0x3017);
+    assert_eq_hex!(*relocs.block[1].get_ref(), 0x301F);
+
+    assert_eq!(Relocations::to_type(*relocs.block[0].get_ref()), RelocationType::ImageRelBasedHighLow);
+    assert_eq!(Relocations::to_type(*relocs.block[1].get_ref()), RelocationType::ImageRelBasedHighLow);
+
+    assert_eq!(Relocations::to_offset(*relocs.block[0].get_ref()), 0x17);
+    assert_eq!(Relocations::to_offset(*relocs.block[1].get_ref()), 0x1F);
 }
-*/
+
