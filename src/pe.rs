@@ -75,7 +75,7 @@ impl PeHeader {
         Ok(*self.entry_sec_ref()?.ptr_to_raw_data as usize + self.entry_rel_sec_offset()?)
     }
 
-    pub fn calc_entry_sec_virt_size(&self) -> Result<u32, String> {
+    pub fn entry_sec_virt_size(&self) -> Result<u32, String> {
         Ok(((*self.entry_sec_ref()?.size_of_raw_data / 0x1000) + 1) * 0x1000)
     }
 }
@@ -228,11 +228,43 @@ pub fn entry_disk_offset() {
     assert_eq_hex!(pe_hdr.entry_disk_offset().unwrap(), 0x900);
 }
 
-/*
-pub fn calc_entry_sec_virt_size(&self) -> Result<u32, String> {
-    Ok(((*self.entry_sec_ref()?.size_of_raw_data / 0x1000) + 1) * 0x1000)
+#[test]
+pub fn entry_sec_virt_size() {
+    let mut pe_hdr = parse_test_pe().unwrap();
+
+    pe_hdr
+        .nt_hdr
+        .opt_hdr
+        .addr_of_entrypoint
+        .set(&mut pe_hdr.rwbuf, 0x1500)
+        .unwrap();
+
+    pe_hdr.sec_hdrs[0]
+        .virt_addr
+        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .unwrap();
+
+    pe_hdr.sec_hdrs[0]
+        .size_of_raw_data
+        .set(&mut pe_hdr.rwbuf, 0x442)
+        .unwrap();
+
+    assert_eq_hex!(pe_hdr.entry_sec_virt_size().unwrap(), 0x1000);
+
+    pe_hdr.sec_hdrs[0]
+        .size_of_raw_data
+        .set(&mut pe_hdr.rwbuf, 0x0)
+        .unwrap();
+
+    assert_eq_hex!(pe_hdr.entry_sec_virt_size().unwrap(), 0x1000);
+
+    pe_hdr.sec_hdrs[0]
+        .size_of_raw_data
+        .set(&mut pe_hdr.rwbuf, 0x1001)
+        .unwrap();
+
+    assert_eq_hex!(pe_hdr.entry_sec_virt_size().unwrap(), 0x2000);
 }
-*/
 
 fn parse_test_pe() -> Result<PeHeader, String> {
     const TEST_PE: &str = "test_data/test_pe_hdr.bin";
