@@ -16,26 +16,23 @@ pub struct PeHeader {
     pub sec_hdrs: Vec<SectionHeader>,
     pub relocs: Option<Relocations>,
     pub import_descs: Option<Vec<ImportDescriptor>>,
-    pub rwbuf: Cursor<Vec<u8>>,
 }
 
 impl PeHeader {
-    pub fn new(buf: Vec<u8>) -> Result<Self, String> {
-        let mut rwbuf = std::io::Cursor::new(buf);
-
-        let dos_hdr = DosHeader::new(&mut rwbuf)?;
+    pub fn new(rwbuf: &mut Cursor<Vec<u8>>) -> Result<Self, String> {
+        let dos_hdr = DosHeader::new(rwbuf)?;
 
         rwbuf
             .seek(SeekFrom::Start(*dos_hdr.addr_of_new_exe_hdr as u64))
             .map_err(|e| fmt_err!("Could not seek to nt header start: {}", e))?;
 
-        let nt_hdr = NtHeader::new(&mut rwbuf)?;
+        let nt_hdr = NtHeader::new(rwbuf)?;
 
         let mut sec_hdrs: Vec<SectionHeader> = Vec::new();
         let num_of_secs = *nt_hdr.file_hdr.num_of_secs;
 
         for _ in 0..num_of_secs {
-            sec_hdrs.push(SectionHeader::new(&mut rwbuf)?)
+            sec_hdrs.push(SectionHeader::new(rwbuf)?)
         }
 
         let relocs = match &nt_hdr.opt_hdr.data_dirs.base_reloc {
@@ -53,7 +50,7 @@ impl PeHeader {
                         )
                     })?;
 
-                Some(Relocations::new(&mut rwbuf)?)
+                Some(Relocations::new(rwbuf)?)
             }
             None => None,
         };
@@ -76,7 +73,7 @@ impl PeHeader {
                 let mut import_descs = Vec::new();
 
                 loop {
-                    let import_desc = ImportDescriptor::new(&mut rwbuf)?; // Low chance but possible for this to error if last desc is right before EOF
+                    let import_desc = ImportDescriptor::new(rwbuf)?; // Low chance but possible for this to error if last desc is right before EOF
                     match *import_desc.original_first_thunk {
                         0 => break,
                         _ => import_descs.push(import_desc),
@@ -94,7 +91,6 @@ impl PeHeader {
             sec_hdrs,
             relocs,
             import_descs,
-            rwbuf,
         })
     }
 
@@ -151,26 +147,26 @@ impl PeHeader {
 
 #[test]
 fn virt_addr_to_sec_index() {
-    let mut pe_hdr = parse_test_pe().unwrap();
+    let (mut pe_hdr, mut rwbuf) = parse_test_pe().unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_addr
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_size
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
 
     pe_hdr.sec_hdrs[1]
         .virt_addr
-        .set(&mut pe_hdr.rwbuf, 0x2000)
+        .set(&mut rwbuf, 0x2000)
         .unwrap();
 
     pe_hdr.sec_hdrs[1]
         .virt_size
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
 
     assert_eq_hex!(pe_hdr.virt_addr_to_sec_index(0x0).ok(), None);
@@ -181,14 +177,14 @@ fn virt_addr_to_sec_index() {
 
 #[test]
 fn entry_sec_index() {
-    let mut pe_hdr = parse_test_pe().unwrap();
+    let (mut pe_hdr, mut rwbuf) = parse_test_pe().unwrap();
 
     let new_entry_va = *pe_hdr.sec_hdrs[0].virt_addr;
     pe_hdr
         .nt_hdr
         .opt_hdr
         .addr_of_entrypoint
-        .set(&mut pe_hdr.rwbuf, new_entry_va)
+        .set(&mut rwbuf, new_entry_va)
         .unwrap();
 
     assert_eq_hex!(pe_hdr.entry_sec_index().ok(), Some(0));
@@ -196,13 +192,13 @@ fn entry_sec_index() {
 
 #[test]
 fn entry_rel_sec_offset() {
-    let mut pe_hdr = parse_test_pe().unwrap();
+    let (mut pe_hdr, mut rwbuf) = parse_test_pe().unwrap();
 
     pe_hdr
         .nt_hdr
         .opt_hdr
         .addr_of_entrypoint
-        .set(&mut pe_hdr.rwbuf, *pe_hdr.sec_hdrs[0].virt_addr + 0x100)
+        .set(&mut rwbuf, *pe_hdr.sec_hdrs[0].virt_addr + 0x100)
         .unwrap();
 
     assert_eq_hex!(pe_hdr.entry_rel_sec_offset().ok(), Some(0x100));
@@ -211,7 +207,7 @@ fn entry_rel_sec_offset() {
         .nt_hdr
         .opt_hdr
         .addr_of_entrypoint
-        .set(&mut pe_hdr.rwbuf, 0)
+        .set(&mut rwbuf, 0)
         .unwrap();
 
     assert_eq_hex!(pe_hdr.entry_rel_sec_offset().ok(), None);
@@ -219,23 +215,23 @@ fn entry_rel_sec_offset() {
 
 #[test]
 fn entry_sec_ref() {
-    let mut pe_hdr = parse_test_pe().unwrap();
+    let (mut pe_hdr, mut rwbuf) = parse_test_pe().unwrap();
 
     pe_hdr
         .nt_hdr
         .opt_hdr
         .addr_of_entrypoint
-        .set(&mut pe_hdr.rwbuf, 0x1500)
+        .set(&mut rwbuf, 0x1500)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_addr
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_size
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
 
     assert_eq_hex!(*pe_hdr.entry_sec_ref().unwrap(), pe_hdr.sec_hdrs[0]);
@@ -243,24 +239,24 @@ fn entry_sec_ref() {
 
 #[test]
 pub fn entry_sec_virt_ip() {
-    let mut pe_hdr = parse_test_pe().unwrap();
+    let (mut pe_hdr, mut rwbuf) = parse_test_pe().unwrap();
 
     pe_hdr
         .nt_hdr
         .opt_hdr
         .addr_of_entrypoint
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_addr
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
     pe_hdr
         .nt_hdr
         .opt_hdr
         .image_base
-        .set(&mut pe_hdr.rwbuf, 0x500000)
+        .set(&mut rwbuf, 0x500000)
         .unwrap();
 
     assert_eq_hex!(pe_hdr.entry_sec_virt_ip().unwrap(), 0x501000)
@@ -268,28 +264,28 @@ pub fn entry_sec_virt_ip() {
 
 #[test]
 pub fn entry_disk_offset() {
-    let mut pe_hdr = parse_test_pe().unwrap();
+    let (mut pe_hdr, mut rwbuf) = parse_test_pe().unwrap();
 
     pe_hdr
         .nt_hdr
         .opt_hdr
         .addr_of_entrypoint
-        .set(&mut pe_hdr.rwbuf, 0x1500)
+        .set(&mut rwbuf, 0x1500)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_addr
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_size
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .ptr_to_raw_data
-        .set(&mut pe_hdr.rwbuf, 0x400)
+        .set(&mut rwbuf, 0x400)
         .unwrap();
 
     assert_eq_hex!(pe_hdr.entry_disk_offset().unwrap(), 0x900);
@@ -297,49 +293,51 @@ pub fn entry_disk_offset() {
 
 #[test]
 pub fn entry_sec_virt_size() {
-    let mut pe_hdr = parse_test_pe().unwrap();
+    let (mut pe_hdr, mut rwbuf) = parse_test_pe().unwrap();
 
     pe_hdr
         .nt_hdr
         .opt_hdr
         .addr_of_entrypoint
-        .set(&mut pe_hdr.rwbuf, 0x1500)
+        .set(&mut rwbuf, 0x1500)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .virt_addr
-        .set(&mut pe_hdr.rwbuf, 0x1000)
+        .set(&mut rwbuf, 0x1000)
         .unwrap();
 
     pe_hdr.sec_hdrs[0]
         .size_of_raw_data
-        .set(&mut pe_hdr.rwbuf, 0x442)
-        .unwrap();
-
-    assert_eq_hex!(pe_hdr.entry_sec_virt_size().unwrap(), 0x1000);
-
-    pe_hdr.sec_hdrs[0]
-        .size_of_raw_data
-        .set(&mut pe_hdr.rwbuf, 0x0)
+        .set(&mut rwbuf, 0x442)
         .unwrap();
 
     assert_eq_hex!(pe_hdr.entry_sec_virt_size().unwrap(), 0x1000);
 
     pe_hdr.sec_hdrs[0]
         .size_of_raw_data
-        .set(&mut pe_hdr.rwbuf, 0x1001)
+        .set(&mut rwbuf, 0x0)
+        .unwrap();
+
+    assert_eq_hex!(pe_hdr.entry_sec_virt_size().unwrap(), 0x1000);
+
+    pe_hdr.sec_hdrs[0]
+        .size_of_raw_data
+        .set(&mut rwbuf, 0x1001)
         .unwrap();
 
     assert_eq_hex!(pe_hdr.entry_sec_virt_size().unwrap(), 0x2000);
 }
 
-fn parse_test_pe() -> Result<PeHeader, String> {
+fn parse_test_pe() -> Result<(PeHeader, Cursor<Vec<u8>>), String> {
     const TEST_PE: &str = "test_data/test_pe_hdr.bin";
 
-    let pe_buf: Vec<u8> =
-        std::fs::read(TEST_PE).map_err(|e| fmt_err!("Could not read file: {} - {}", TEST_PE, e))?;
+    let mut rwbuf: Cursor<Vec<u8>> = Cursor::new(
+        std::fs::read(TEST_PE).map_err(|e| fmt_err!("Could not read file: {} - {}", TEST_PE, e))?,
+    );
 
-    let pe_hdr = PeHeader::new(pe_buf).map_err(|e| fmt_err!("Could not create PeHeader: {}", e))?;
+    let pe_hdr =
+        PeHeader::new(&mut rwbuf).map_err(|e| fmt_err!("Could not create PeHeader: {}", e))?;
 
-    Ok(pe_hdr)
+    Ok((pe_hdr, rwbuf))
 }
