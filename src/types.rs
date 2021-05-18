@@ -1,10 +1,14 @@
 use crate::fmt_err;
+#[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use derive_header::GenValNew;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Read, Write};
 use std::ops::Deref;
+#[allow(unused_attributes)]
+#[macro_use]
+#[allow(unused_imports)]
 #[macro_use]
 use assert_hex::assert_eq_hex;
 
@@ -103,7 +107,7 @@ where
         Ok(())
     }
 
-    fn add_val(&mut self, val: [u8; L]) {
+    fn add_val(&mut self, _: [u8; L]) {
         todo!()
     }
 }
@@ -228,6 +232,7 @@ impl ModGenVal<u64> for GenVal<u64> {
     }
 }
 
+#[allow(dead_code)]
 #[derive(GenValNew)]
 struct GenValTest {
     pub unsigned_8: GenVal<u8>,
@@ -237,6 +242,7 @@ struct GenValTest {
     pub unsigned_u8_arr: GenVal<[u8; 4]>,
 }
 
+#[allow(dead_code)]
 const GENVAL_TESTDATA: [u8; 0x13] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13,
 ];

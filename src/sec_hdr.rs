@@ -1,8 +1,7 @@
-use crate::fmt_err;
 use crate::types::*;
 use derive_header::GenValNew;
 use std::io::prelude::*;
-use std::io::{Read, Write};
+use std::io::Read;
 
 #[derive(GenValNew, Debug, PartialEq)]
 pub struct SectionHeader {

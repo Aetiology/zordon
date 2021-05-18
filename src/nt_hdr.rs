@@ -1,7 +1,6 @@
-use crate::fmt_err;
 use crate::types::*;
 use std::io::prelude::*;
-use std::io::{Read, Write};
+use std::io::Read;
 use derive_header::GenValNew;
 
 #[derive(GenValNew)]

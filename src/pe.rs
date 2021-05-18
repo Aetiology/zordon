@@ -1,14 +1,15 @@
 use crate::fmt_err;
-use crate::types::*;
 use crate::{
     dos_hdr::DosHeader, imports::ImportDescriptor, nt_hdr::*, relocs::Relocations,
     sec_hdr::SectionHeader,
 };
+#[allow(unused_attributes)]
 #[macro_use]
+#[allow(unused_imports)]
 use assert_hex::assert_eq_hex;
 use std::io::prelude::*;
 use std::io::SeekFrom;
-use std::io::{Cursor, Read, Write};
+use std::io::Cursor;
 
 pub struct PeHeader {
     pub dos_hdr: DosHeader,
@@ -329,6 +330,7 @@ pub fn entry_sec_virt_size() {
     assert_eq_hex!(pe_hdr.entry_sec_virt_size().unwrap(), 0x2000);
 }
 
+#[allow(dead_code)]
 fn parse_test_pe() -> Result<(PeHeader, Cursor<Vec<u8>>), String> {
     const TEST_PE: &str = "test_data/test_pe_hdr.bin";
 

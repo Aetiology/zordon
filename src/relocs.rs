@@ -1,9 +1,9 @@
-use crate::fmt_err;
 use crate::types::*;
-use derive_header::GenValNew;
 use std::io::prelude::*;
-use std::io::{Read, Write};
+use std::io::Read;
+#[allow(unused_attributes)]
 #[macro_use]
+#[allow(unused_imports)]
 use assert_hex::assert_eq_hex;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -66,6 +66,7 @@ impl Relocations {
     }
 }
 
+#[allow(dead_code)]
 const RELOC_TESTDATA: [u8; 0x10] = [
     0, 0x10, 0, 0, 0x0C, 0, 0, 0, 0x17, 0x30, 0x1F, 0x30, 0, 0, 0, 0,
 ];
