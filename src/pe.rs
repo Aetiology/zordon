@@ -1,6 +1,9 @@
 use crate::fmt_err;
 use crate::types::*;
-use crate::{dos_hdr::DosHeader, nt_hdr::*, relocs::Relocations, sec_hdr::SectionHeader};
+use crate::{
+    dos_hdr::DosHeader, imports::ImportDescriptor, nt_hdr::*, relocs::Relocations,
+    sec_hdr::SectionHeader,
+};
 #[macro_use]
 use assert_hex::assert_eq_hex;
 use std::io::prelude::*;
@@ -12,6 +15,7 @@ pub struct PeHeader {
     pub nt_hdr: NtHeader,
     pub sec_hdrs: Vec<SectionHeader>,
     pub relocs: Option<Relocations>,
+    pub import_descs: Option<Vec<ImportDescriptor>>,
     pub rwbuf: Cursor<Vec<u8>>,
 }
 
@@ -54,11 +58,42 @@ impl PeHeader {
             None => None,
         };
 
+        let import_descs = match &nt_hdr.opt_hdr.data_dirs.import {
+            Some(imports) => {
+                let import_descs_disk_start =
+                    Self::rva_to_file_offset(&sec_hdrs, *imports.virt_addr)?;
+
+                rwbuf
+                    .seek(SeekFrom::Start(import_descs_disk_start as u64))
+                    .map_err(|e| {
+                        fmt_err!(
+                            "Failed to seek to import descriptors disk offset: {} - {}",
+                            import_descs_disk_start,
+                            e,
+                        )
+                    })?;
+
+                let mut import_descs = Vec::new();
+
+                loop {
+                    let import_desc = ImportDescriptor::new(&mut rwbuf)?; // Low chance but possible for this to error if last desc is right before EOF
+                    match *import_desc.original_first_thunk {
+                        0 => break,
+                        _ => import_descs.push(import_desc),
+                    }
+                }
+
+                Some(import_descs)
+            }
+            None => None,
+        };
+
         Ok(Self {
             dos_hdr,
             nt_hdr,
             sec_hdrs,
             relocs,
+            import_descs,
             rwbuf,
         })
     }
