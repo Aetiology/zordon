@@ -50,6 +50,26 @@ where
         &self.val
     }
 
+    /**
+    ```
+     # #[macro_use]
+     # use assert_hex::assert_eq_hex;
+     # use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
+     # use derive_header::GenValNew;
+     # use zordon::types::GenVal;
+     # use std::io::{Read, Write, Seek};
+    #[derive(GenValNew)]
+    struct GenValTest {
+        pub unsigned_8: GenVal<u8>,
+        pub unsigned_16: GenVal<u16>,
+        pub unsigned_32: GenVal<u32>,
+    }
+
+    let mut buf = std::io::Cursor::new(vec![0x0, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
+    let mut genvaltest = GenValTest::new(&mut buf).unwrap();
+
+    assert_eq_hex!(genvaltest.unsigned_32.offset(), 0x3);
+    */
     pub fn offset(&self) -> u64 {
         self.offset
     }
