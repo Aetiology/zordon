@@ -83,10 +83,15 @@ fn relocations_new() {
     assert_eq_hex!(*relocs.block[0], 0x3017);
     assert_eq_hex!(*relocs.block[1], 0x301F);
 
-    assert_eq!(Relocations::to_type(*relocs.block[0]), RelocationType::ImageRelBasedHighLow);
-    assert_eq!(Relocations::to_type(*relocs.block[1]), RelocationType::ImageRelBasedHighLow);
+    assert_eq!(
+        Relocations::to_type(*relocs.block[0]),
+        RelocationType::ImageRelBasedHighLow
+    );
+    assert_eq!(
+        Relocations::to_type(*relocs.block[1]),
+        RelocationType::ImageRelBasedHighLow
+    );
 
     assert_eq!(Relocations::to_offset(*relocs.block[0]), 0x17);
     assert_eq!(Relocations::to_offset(*relocs.block[1]), 0x1F);
 }
-

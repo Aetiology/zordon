@@ -1,7 +1,7 @@
 use crate::types::*;
+use derive_header::GenValNew;
 use std::io::prelude::*;
 use std::io::Read;
-use derive_header::GenValNew;
 
 #[derive(GenValNew)]
 pub struct NtHeader {
@@ -77,4 +77,3 @@ pub struct DataDirectory {
     pub virt_addr: GenVal<u32>,
     pub size: GenVal<u32>,
 }
-

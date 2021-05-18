@@ -8,8 +8,8 @@ use crate::{
 #[allow(unused_imports)]
 use assert_hex::assert_eq_hex;
 use std::io::prelude::*;
-use std::io::SeekFrom;
 use std::io::Cursor;
+use std::io::SeekFrom;
 
 pub struct PeHeader {
     pub dos_hdr: DosHeader,
@@ -331,7 +331,7 @@ pub fn entry_sec_virt_size() {
 }
 
 #[allow(dead_code)]
-fn parse_test_pe() -> Result<(PeHeader, Cursor<Vec<u8>>), String> {
+pub fn parse_test_pe() -> Result<(PeHeader, Cursor<Vec<u8>>), String> {
     const TEST_PE: &str = "test_data/test_pe_hdr.bin";
 
     let mut rwbuf: Cursor<Vec<u8>> = Cursor::new(

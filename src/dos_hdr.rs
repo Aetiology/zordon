@@ -1,7 +1,7 @@
 use crate::types::*;
 use derive_header::GenValNew;
 use std::io::prelude::*;
-use std::io::{Read};
+use std::io::Read;
 
 #[derive(GenValNew)]
 pub struct DosHeader {
