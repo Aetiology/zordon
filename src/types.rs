@@ -70,6 +70,31 @@ where
         Self::write(writer, &self.val)
     }
 
+    /**
+    ```
+     # #[macro_use]
+     # use assert_hex::assert_eq_hex;
+     # use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
+     # use derive_header::GenValNew;
+     # use zordon::types::GenVal;
+     # use std::io::{Read, Write, Seek};
+    #[derive(GenValNew)]
+    struct GenValTest {
+        pub unsigned_8: GenVal<u8>,
+    }
+
+    let mut buf = std::io::Cursor::new(vec![0x0]);
+    let mut genvaltest = GenValTest::new(&mut buf).unwrap();
+
+    assert_eq_hex!(*genvaltest.unsigned_8, 0x0);
+
+    genvaltest
+        .unsigned_8
+        .set(&mut buf, 0x10)
+        .unwrap();
+
+    assert_eq_hex!(*genvaltest.unsigned_8, 0x10);
+    */
     pub fn set<W: Write + Seek>(&mut self, writer: &mut W, val: T) -> Result<(), String> {
         self.val = val;
         self.seek_write(writer)
@@ -80,7 +105,7 @@ where
      # use assert_hex::assert_eq_hex;
      # use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
      # use derive_header::GenValNew;
-     # use zordon::types::GenVal; 
+     # use zordon::types::GenVal;
      # use std::io::{Read, Write, Seek};
     #[derive(GenValNew)]
     struct GenValTest {
@@ -100,10 +125,6 @@ where
     pub fn add<W: Write + Seek>(&mut self, writer: &mut W, val: T) -> Result<(), String> {
         self.add_val(val);
         self.seek_write(writer)
-    }
-
-    pub fn fas() {
-        GenVal::a
     }
 }
 
