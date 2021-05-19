@@ -2,6 +2,7 @@ use crate::fmt_err;
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use derive_header::GenValNew;
+use std::io::Cursor;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Read, Write};
@@ -36,50 +37,41 @@ pub trait ModGenValExp<'a> {
     type Output;
 
     fn val(&mut self) -> Self::Output;
-    fn set(&mut self, val: Self::Output);
+    fn set(&mut self, v: Self::Output);
+}
+
+impl<'a> ModGenValExp<'a> for GenValExp<'a, u8> {
+    type Output = u8;
+
+    fn val(&mut self) -> Self::Output {
+        self.val[0]
+    }
+
+    fn set(&mut self, v: u8) {
+       self.val[0] = v
+    }
 }
 
 #[macro_export]
 macro_rules! impl_modgenval {
-    ($target:tt, $type:tt, $read:ident, $write:ident) => {
-        impl<'a> ModGenValExp<'a> for $target<'a, $type>
-        where
-            &'a [u8]: Write,
-        {
+    ($target:tt, $type:tt, $read:ident, $write:ident, $endian:ident) => {
+        impl<'a> ModGenValExp<'a> for $target<'a, $type> {
             type Output = $type;
 
             fn val(&mut self) -> Self::Output {
-                self.val.$read().unwrap()
+                $endian::$read(self.val)
             }
 
-            fn set(&mut self, val: $type) {
-                self.val.$write(val).unwrap()
-            }
-        }
-    };
-
-    ($target:tt, $type:tt, $read:ident, $write:ident, $e:ty) => {
-        impl<'a> ModGenValExp<'a> for $target<'a, $type>
-        where
-            &'a [u8]: Write,
-        {
-            type Output = $type;
-
-            fn val(&mut self) -> Self::Output {
-                self.val.$read::<$e>().unwrap()
-            }
-
-            fn set(&mut self, val: $type) {
-                self.val.$write::<$e>(val).unwrap()
+            fn set(&mut self, v: Self::Output) {
+                $endian::$write(self.val, v)
             }
         }
     };
 }
 
-impl_modgenval!(GenValExp, u8, read_u8, write_u8);
-//impl_modgenval!(GenValExp, u16, read_u16, write_u16, LittleEndian);
-//impl_modgenval!(GenValExp, u32, read_u32, write_u32, LittleEndian);
-//impl_modgenval!(GenValExp, u64, read_u64, write_u64, LittleEndian);
+impl_modgenval!(GenValExp, u16, read_u16, write_u16, LittleEndian);
+impl_modgenval!(GenValExp, u32, read_u32, write_u32, LittleEndian);
+impl_modgenval!(GenValExp, u64, read_u64, write_u64, LittleEndian);
 
 /*
 impl<'a> ModGenValExp<'a> for GenValExp<'a, u8> {
@@ -91,6 +83,7 @@ impl<'a> ModGenValExp<'a> for GenValExp<'a, u8> {
 }
 
 */
+
 /*
 impl<'a, const L: usize> ModGenValExp<'a> for GenValExp<'a, [u8; L]> {
     type Output = &'a [u8];
@@ -102,14 +95,17 @@ impl<'a, const L: usize> ModGenValExp<'a> for GenValExp<'a, [u8; L]> {
 */
 
 #[derive(Debug, PartialEq)]
-pub struct GenValExp<'a, T> {
-    val: &'a [u8],
+pub struct GenValExp<'a, T>
+where
+    Self: ModGenValExp<'a>,
+{
+    val: &'a mut [u8],
     _marker: std::marker::PhantomData<T>,
 }
 
 impl<'a, T> GenValExp<'a, T>
 where
-    GenValExp<'a, T>: ModGenValExp<'a>,
+    Self: ModGenValExp<'a>,
 {
     pub fn new(a: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, r) = a.split_at_mut(std::mem::size_of::<T>());
@@ -133,16 +129,19 @@ fn testgenvalexp() {
     let mut buf = v.clone();
 
     let (mut genvaltest_u8, r) = GenValExp::<u8>::new(&mut buf);
-    //let (mut genvaltest_u16, r) = GenValExp::<u16>::new(r);
-    //let (mut genvaltest_u32, r) = GenValExp::<u32>::new(r);
-    //let (mut genvaltest_u64, r) = GenValExp::<u64>::new(r);
+    let (mut genvaltest_u16, r) = GenValExp::<u16>::new(r);
+    let (mut genvaltest_u32, r) = GenValExp::<u32>::new(r);
+    let (mut genvaltest_u64, r) = GenValExp::<u64>::new(r);
     //let (mut genvaltest_arr, r) = GenValExp::<[u8; 3]>::new(r);
+    
 
     assert_eq!(genvaltest_u8.val(), 0);
-    //assert_eq!(genvaltest_u16.val(), 0x0101);
-    //assert_eq!(genvaltest_u32.val(), 0x02020202);
-    //assert_eq!(genvaltest_u64.val(), 0x0303030303030303);
-    // assert_eq!(genvaltest_arr.val(), [0x04, 0x04, 0x04]);
+    /*
+    assert_eq!(genvaltest_u16.val(), 0x0101);
+    assert_eq!(genvaltest_u32.val(), 0x02020202);
+    assert_eq!(genvaltest_u64.val(), 0x0303030303030303);
+    assert_eq!(genvaltest_arr.val(), [0x04, 0x04, 0x04]);
+    */
     assert_eq!(buf, v.clone());
 }
 
