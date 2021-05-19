@@ -31,6 +31,131 @@ impl<T> Deref for GenVal<T> {
         &self.val
     }
 }
+///###
+pub trait ModGenValExp<'a> {
+    type Output;
+
+    fn val(&mut self) -> Self::Output;
+    fn set(&mut self, val: Self::Output);
+}
+
+#[macro_export]
+macro_rules! impl_modgenval {
+    ($target:tt, $type:tt, $read:ident, $write:ident) => {
+        impl<'a> ModGenValExp<'a> for $target<'a, $type>
+        where
+            &'a [u8]: Write,
+        {
+            type Output = $type;
+
+            fn val(&mut self) -> Self::Output {
+                self.val.$read().unwrap()
+            }
+
+            fn set(&mut self, val: $type) {
+                self.val.$write(val).unwrap()
+            }
+        }
+    };
+
+    ($target:tt, $type:tt, $read:ident, $write:ident, $e:ty) => {
+        impl<'a> ModGenValExp<'a> for $target<'a, $type>
+        where
+            &'a [u8]: Write,
+        {
+            type Output = $type;
+
+            fn val(&mut self) -> Self::Output {
+                self.val.$read::<$e>().unwrap()
+            }
+
+            fn set(&mut self, val: $type) {
+                self.val.$write::<$e>(val).unwrap()
+            }
+        }
+    };
+}
+
+impl_modgenval!(GenValExp, u8, read_u8, write_u8);
+//impl_modgenval!(GenValExp, u16, read_u16, write_u16, LittleEndian);
+//impl_modgenval!(GenValExp, u32, read_u32, write_u32, LittleEndian);
+//impl_modgenval!(GenValExp, u64, read_u64, write_u64, LittleEndian);
+
+/*
+impl<'a> ModGenValExp<'a> for GenValExp<'a, u8> {
+    type Output = u8;
+
+    fn val(&mut self) -> Self::Output {
+        self.val.read_u8().unwrap()
+    }
+}
+
+*/
+/*
+impl<'a, const L: usize> ModGenValExp<'a> for GenValExp<'a, [u8; L]> {
+    type Output = &'a [u8];
+
+    fn val(&mut self) -> &'a [u8] {
+        self.val
+    }
+}
+*/
+
+#[derive(Debug, PartialEq)]
+pub struct GenValExp<'a, T> {
+    val: &'a [u8],
+    _marker: std::marker::PhantomData<T>,
+}
+
+impl<'a, T> GenValExp<'a, T>
+where
+    GenValExp<'a, T>: ModGenValExp<'a>,
+{
+    pub fn new(a: &'a mut [u8]) -> (Self, &'a mut [u8]) {
+        let (val, r) = a.split_at_mut(std::mem::size_of::<T>());
+
+        (
+            Self {
+                val,
+                _marker: std::marker::PhantomData::<T>,
+            },
+            r,
+        )
+    }
+}
+
+#[test]
+fn testgenvalexp() {
+    let mut v = vec![
+        0x00, 0x01, 0x01, 0x02, 0x02, 0x2, 0x02, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+        0x04, 0x04, 0x04,
+    ];
+    let mut buf = v.clone();
+
+    let (mut genvaltest_u8, r) = GenValExp::<u8>::new(&mut buf);
+    //let (mut genvaltest_u16, r) = GenValExp::<u16>::new(r);
+    //let (mut genvaltest_u32, r) = GenValExp::<u32>::new(r);
+    //let (mut genvaltest_u64, r) = GenValExp::<u64>::new(r);
+    //let (mut genvaltest_arr, r) = GenValExp::<[u8; 3]>::new(r);
+
+    assert_eq!(genvaltest_u8.val(), 0);
+    //assert_eq!(genvaltest_u16.val(), 0x0101);
+    //assert_eq!(genvaltest_u32.val(), 0x02020202);
+    //assert_eq!(genvaltest_u64.val(), 0x0303030303030303);
+    // assert_eq!(genvaltest_arr.val(), [0x04, 0x04, 0x04]);
+    assert_eq!(buf, v.clone());
+}
+
+/*
+impl<'a, T, const L: usize> ModGenValExp<'a, T> for GenValExp<'a, T, { L }> {
+    fn slice(s: &'_ mut [u8]) -> &'_ mut [u8] {
+        let (s, b) = s.split_at_mut(L);
+
+        b
+    }
+}
+*/
+///###
 
 impl<T> GenVal<T>
 where
@@ -314,7 +439,17 @@ struct GenValTest {
 const GENVAL_TESTDATA: [u8; 0x13] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13,
 ];
+/*
+#[test]
+fn genval_offset() -> Result<(), ()> {
+    let mut buf = std::io::Cursor::new(vec![0x0, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
+    let mut genvaltest = GenValTest::new(&mut buf).unwrap();
 
+    assert_eq_hex!(genvaltest.unsigned_32.offset(), 0x3);
+
+    Ok(())
+}
+*/
 #[test]
 fn genval_val() -> Result<(), ()> {
     let data = GENVAL_TESTDATA.to_vec();

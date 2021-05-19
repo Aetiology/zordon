@@ -1,5 +1,5 @@
-#![warn(missing_docs, missing_doc_code_examples)]
-#![doc(test(no_crate_inject))]
+//#![warn(missing_docs, missing_doc_code_examples)]
+//#![doc(test(no_crate_ionject))]
 #![feature(backtrace)]
 pub mod dos_hdr;
 pub mod imports;
