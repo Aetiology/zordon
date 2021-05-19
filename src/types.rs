@@ -2,8 +2,8 @@ use crate::fmt_err;
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use derive_header::GenValNew;
-use std::io::Cursor;
 use std::io::prelude::*;
+use std::io::Cursor;
 use std::io::SeekFrom;
 use std::io::{Read, Write};
 use std::ops::Deref;
@@ -36,19 +36,33 @@ impl<T> Deref for GenVal<T> {
 pub trait ModGenValExp<'a> {
     type Output;
 
-    fn val(&mut self) -> Self::Output;
+    fn val(&'a self) -> Self::Output;
     fn set(&mut self, v: Self::Output);
 }
 
 impl<'a> ModGenValExp<'a> for GenValExp<'a, u8> {
     type Output = u8;
 
-    fn val(&mut self) -> Self::Output {
+    fn val(&self) -> Self::Output {
         self.val[0]
     }
 
     fn set(&mut self, v: u8) {
-       self.val[0] = v
+        self.val[0] = v
+    }
+}
+
+impl<'a, const L: usize> ModGenValExp<'a> for GenValExp<'a, [u8; L]> {
+    type Output = &'a [u8];
+
+    fn val(&'a self) -> Self::Output {
+        self.val
+    }
+
+    fn set(&mut self, v: Self::Output) {
+        for i in 0..L {
+            self.val[i] = v[i];
+        }
     }
 }
 
@@ -58,7 +72,7 @@ macro_rules! impl_modgenval {
         impl<'a> ModGenValExp<'a> for $target<'a, $type> {
             type Output = $type;
 
-            fn val(&mut self) -> Self::Output {
+            fn val(&self) -> Self::Output {
                 $endian::$read(self.val)
             }
 
@@ -72,27 +86,6 @@ macro_rules! impl_modgenval {
 impl_modgenval!(GenValExp, u16, read_u16, write_u16, LittleEndian);
 impl_modgenval!(GenValExp, u32, read_u32, write_u32, LittleEndian);
 impl_modgenval!(GenValExp, u64, read_u64, write_u64, LittleEndian);
-
-/*
-impl<'a> ModGenValExp<'a> for GenValExp<'a, u8> {
-    type Output = u8;
-
-    fn val(&mut self) -> Self::Output {
-        self.val.read_u8().unwrap()
-    }
-}
-
-*/
-
-/*
-impl<'a, const L: usize> ModGenValExp<'a> for GenValExp<'a, [u8; L]> {
-    type Output = &'a [u8];
-
-    fn val(&mut self) -> &'a [u8] {
-        self.val
-    }
-}
-*/
 
 #[derive(Debug, PartialEq)]
 pub struct GenValExp<'a, T>
@@ -127,22 +120,32 @@ fn testgenvalexp() {
         0x04, 0x04, 0x04,
     ];
     let mut buf = v.clone();
-
     let (mut genvaltest_u8, r) = GenValExp::<u8>::new(&mut buf);
+
     let (mut genvaltest_u16, r) = GenValExp::<u16>::new(r);
     let (mut genvaltest_u32, r) = GenValExp::<u32>::new(r);
     let (mut genvaltest_u64, r) = GenValExp::<u64>::new(r);
-    //let (mut genvaltest_arr, r) = GenValExp::<[u8; 3]>::new(r);
-    
+    let (mut genvaltest_arr, r) = GenValExp::<[u8; 3]>::new(r);
 
     assert_eq!(genvaltest_u8.val(), 0);
-    /*
     assert_eq!(genvaltest_u16.val(), 0x0101);
     assert_eq!(genvaltest_u32.val(), 0x02020202);
     assert_eq!(genvaltest_u64.val(), 0x0303030303030303);
     assert_eq!(genvaltest_arr.val(), [0x04, 0x04, 0x04]);
-    */
-    assert_eq!(buf, v.clone());
+
+    genvaltest_u8.set(0x99);
+    genvaltest_u16.set(0x9999);
+    genvaltest_u32.set(0x99999999);
+    genvaltest_u64.set(0x9999999999999999);
+    genvaltest_arr.set(&[0x99, 0x99, 0x99]);
+
+    assert_eq!(genvaltest_u8.val(), 0x99);
+    assert_eq!(genvaltest_u16.val(), 0x9999);
+    assert_eq!(genvaltest_u32.val(), 0x99999999);
+    assert_eq!(genvaltest_u64.val(), 0x9999999999999999);
+    assert_eq!(genvaltest_arr.val(), [0x99, 0x99, 0x99]);
+
+    //assert_eq!(buf, v.clone());
 }
 
 /*
