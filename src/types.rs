@@ -72,15 +72,15 @@ impl<'a> ModSimpleVal<'a, u8> for SimpleVal<'a, u8> {
 }
 
 impl<'a, const L: usize> ArrayVal<'a, [u8; L]> {
-    fn mut_ref(&self) -> RefMut<&'a mut [u8]> {
+    pub fn mut_ref(&self) -> RefMut<&'a mut [u8]> {
         self.buf.borrow_mut()
     }
 
-    fn rc_clone(&self) -> Rc<RefCell<&'a mut [u8]>> {
+    pub fn rc_clone(&self) -> Rc<RefCell<&'a mut [u8]>> {
         self.buf.clone()
     }
 
-    fn set(&mut self, src: &[u8]) {
+    pub fn set(&mut self, src: &[u8]) {
         let mut dst = self.buf.borrow_mut();
 
         for i in 0..L {
@@ -128,55 +128,6 @@ impl_oper_assign_overload!(SubAssign, Sub, sub_assign, -, T);
 impl_oper_assign_overload!(MulAssign, Mul, mul_assign, *, T);
 impl_oper_assign_overload!(DivAssign, Div, div_assign, /, T);
 
-/*
-#[test]
-fn testSimpleVal() {
-    let v = vec![
-        0x10, 0x01, 0x01, 0x02, 0x02, 0x2, 0x02, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
-        0x04, 0x04, 0x04,
-    ];
-    let mut buf = v.clone();
-
-    let mut slice_info = SliceInfo::default();
-
-    slice_info.orig_buf = &mut buf;
-
-    let mut SimpleValtest_u8 = SimpleVal::<u8>::new(&mut slice_info);
-    let mut SimpleValtest_u16 = SimpleVal::<u16>::new(&mut slice_info);
-    let mut SimpleValtest_u32 = SimpleVal::<u32>::new(&mut slice_info);
-    let mut SimpleValtest_u64 = SimpleVal::<u64>::new(&mut slice_info);
-    //let mut ArrayValtest = ArrayVal::<[u8; 3]>::new(buf);
-
-    assert_eq!(SimpleValtest_u8.val(), 0x10);
-    assert_eq!(SimpleValtest_u16.val(), 0x0101);
-    assert_eq!(SimpleValtest_u32.val(), 0x02020202);
-    assert_eq!(SimpleValtest_u64.val(), 0x0303030303030303);
-
-   // assert_eq!(*ArrayValtest.mut_ref(), [0x04, 0x04, 0x04]);
-
-    SimpleValtest_u8 += 0x10;
-    assert_eq!(SimpleValtest_u8.val(), 0x20);
-
-    SimpleValtest_u8.set(0x99);
-    SimpleValtest_u16.set(0x9999);
-    SimpleValtest_u32.set(0x99999999);
-    SimpleValtest_u64.set(0x9999999999999999);
-
-    //ArrayValtest.set(&[0x99, 0x99, 0x99]);
-
-    assert_eq!(SimpleValtest_u8.val(), 0x99);
-    assert_eq!(SimpleValtest_u16.val(), 0x9999);
-    assert_eq!(SimpleValtest_u32.val(), 0x99999999);
-    assert_eq!(SimpleValtest_u64.val(), 0x9999999999999999);
-
-   //assert_eq!(*ArrayValtest.mut_ref(), [0x99, 0x99, 0x99]);
-
-    //assert_eq!(buf, v.clone());
-}
-
-*/
-// ####
-
 #[allow(dead_code)]
 #[derive(MutViewNew)]
 struct SimpleValTest<'a> {
@@ -187,58 +138,25 @@ struct SimpleValTest<'a> {
     pub unsigned_arr: ArrayVal<'a, [u8; 4]>,
 }
 
-/*
-impl<'a> SimpleValTest<'a> {
-    pub fn new(buf: &'a mut [u8]) -> Self {
 
-        let (unsigned_8, buf) = SimpleVal::new(buf);
-        let (unsigned_16, buf) = SimpleVal::new(buf);
-        let (unsigned_32, buf) = SimpleVal::new(buf);
-        let (unsigned_64, buf) = SimpleVal::new(buf);
-        //let unsigned_arr = ArrayVal::new(&mut slice_bufs);
 
-        Self {
-            unsigned_8,
-            unsigned_16,
-            unsigned_32,
-            unsigned_64,
-            //            unsigned_arr,
-        }
-    }
-}
-*/
-/*
 #[allow(dead_code)]
-const SimpleVal_TESTDATA: [u8; 0x13] = [
+const SIMPLEVAL_TESTDATA: [u8; 0x13] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13,
 ];
-/*
+
 #[test]
-fn SimpleVal_offset() -> Result<(), ()> {
-    let mut buf = std::io::Cursor::new(vec![0x0, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
-    let mut SimpleValtest = SimpleValTest::new(&mut buf).unwrap();
+fn simpleval_val() {
+    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let (t, _): (SimpleValTest, _) = SimpleValTest::new(&mut buf);
 
-    assert_eq_hex!(SimpleValtest.unsigned_32.offset(), 0x3);
-
-    Ok(())
+    assert_eq_hex!(t.unsigned_8.val(), 01);
+    assert_eq_hex!(t.unsigned_16.val(), 0x0302);
+    assert_eq_hex!(t.unsigned_32.val(), 0x07060504);
+    assert_eq_hex!(t.unsigned_64.val(), 0x0F0E0D0C0B0A0908);
+    assert_eq_hex!(*t.unsigned_arr.mut_ref() , [0x10, 0x11, 0x12, 0x13]);
 }
-*/
-#[test]
-fn SimpleVal_val() -> Result<(), ()> {
-    let data = SimpleVal_TESTDATA.to_vec();
-    let mut buf = std::io::Cursor::new(data);
-
-    let SimpleValtest = SimpleValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
-
-    assert_eq_hex!(*SimpleValtest.unsigned_8, 01);
-    assert_eq_hex!(*SimpleValtest.unsigned_16, 0x0302);
-    assert_eq_hex!(*SimpleValtest.unsigned_32, 0x07060504);
-    assert_eq_hex!(*SimpleValtest.unsigned_64, 0x0F0E0D0C0B0A0908);
-    assert_eq_hex!(*SimpleValtest.unsigned_u8_arr, [0x10, 0x11, 0x12, 0x13]);
-
-    Ok(())
-}
-
+/* 
 #[test]
 fn SimpleVal_set() -> Result<(), ()> {
     let data = SimpleVal_TESTDATA.to_vec();
