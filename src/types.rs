@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use derive_header::MutViewNew;
-use std::cell::{RefCell, RefMut, Ref};
+use std::cell::{Ref, RefCell, RefMut};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
 #[allow(unused_attributes)]
@@ -165,6 +165,16 @@ fn arrayval_deref() {
     let (t, _): (ArrayVal<[u8; 4]>, _) = ArrayVal::new(&mut buf);
 
     assert_eq_hex!(*t.as_ref(), arr);
+}
+
+#[test]
+fn arrayval_deref_mut() {
+    let mut buf = [0x01];
+    let (t, _): (ArrayVal<[u8; 1]>, _) = ArrayVal::new(&mut buf);
+
+    t.as_mut_ref()[0] = 0x0A;
+
+    assert_eq_hex!(*t.as_ref(), [0x0A]);
 }
 
 /*
