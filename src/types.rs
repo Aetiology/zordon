@@ -2,11 +2,12 @@ use crate::fmt_err;
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use derive_header::GenValNew;
+use std::cell::{RefCell, RefMut};
 use std::io::prelude::*;
-use std::io::Cursor;
 use std::io::SeekFrom;
 use std::io::{Read, Write};
 use std::ops::{Add, AddAssign, Deref};
+use std::rc::Rc;
 #[allow(unused_attributes)]
 #[macro_use]
 #[allow(unused_imports)]
@@ -59,27 +60,41 @@ where
     }
 }
 
+impl<'a, T> ArrayVal<'a, T>
+where
+    Self: ModArrayVal<'a>,
+{
+    pub fn new(a: &'a mut [u8]) -> (Self, &'a mut [u8]) {
+        let (val, r) = a.split_at_mut(std::mem::size_of::<T>());
+
+        (
+            Self {
+                buf: Rc::new(RefCell::new(val)),
+                _marker: std::marker::PhantomData::<T>,
+            },
+            r,
+        )
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ArrayVal<'a, T>
+where
+    Self: ModArrayVal<'a>,
+{
+    buf: Rc<RefCell<&'a mut [u8]>>,
+    _marker: std::marker::PhantomData<T>,
+}
+
 pub trait ModGenValExp<'a, T> {
     fn val(&self) -> T;
     fn set(&mut self, v: T);
-    /*
-    fn add(&mut self, v: Self::Output)
-    where
-        <Self as ModGenValExp<'a>>::Output: Add + Add<Output = Self::Output>,
-    {
-        let r = self.val() + v;
-        self.set(r)
-    }
-    */
 }
 
-pub trait OperGenValExp<'a, T>
-where
-    T: Add,
-{
-    type Output;
-
-    fn add(&mut self, rhs: Self::Output);
+pub trait ModArrayVal<'a> {
+    fn mut_ref(&self) -> RefMut<&'a mut [u8]>;
+    fn rc_clone(&self) -> Rc<RefCell<&'a mut [u8]>>;
+    fn set(&mut self, src: &[u8]);
 }
 
 impl<'a> ModGenValExp<'a, u8> for GenValExp<'a, u8> {
@@ -92,20 +107,20 @@ impl<'a> ModGenValExp<'a, u8> for GenValExp<'a, u8> {
     }
 }
 
-impl<'a, const L: usize> ModGenValExp<'a, [u8; L]> for GenValExp<'a, [u8; L]> {
-    fn val(&self) -> [u8; L] {
-        let mut buf = [0; L];
-
-        for i in 0..L {
-            buf[i] = self.val[i];
-        }
-
-        buf
+impl<'a, const L: usize> ModArrayVal<'a> for ArrayVal<'a, [u8; L]> {
+    fn mut_ref(&self) -> RefMut<&'a mut [u8]> {
+        self.buf.borrow_mut()
     }
 
-    fn set(&mut self, v: [u8; L]) {
+    fn rc_clone(&self) -> Rc<RefCell<&'a mut [u8]>> {
+        self.buf.clone()
+    }
+
+    fn set(&mut self, src: &[u8]) {
+        let mut dst = self.buf.borrow_mut();
+
         for i in 0..L {
-            self.val[i] = v[i];
+            dst[i] = src[i]
         }
     }
 }
@@ -146,7 +161,7 @@ where
 impl<'a, T> AddAssign<T> for GenValExp<'a, T>
 where
     GenValExp<'a, T>: ModGenValExp<'a, T>,
-    T: Add + Add<Output = T>
+    T: Add + Add<Output = T>,
 {
     fn add_assign(&mut self, rhs: T) {
         self.set(self.val() + rhs);
@@ -184,29 +199,31 @@ fn testgenvalexp() {
     let (mut genvaltest_u16, r) = GenValExp::<u16>::new(r);
     let (mut genvaltest_u32, r) = GenValExp::<u32>::new(r);
     let (mut genvaltest_u64, r) = GenValExp::<u64>::new(r);
-    let (mut genvaltest_arr, r) = GenValExp::<[u8; 3]>::new(r);
+    let (mut arrvaltest, r) = ArrayVal::<[u8; 3]>::new(r);
 
     assert_eq!(genvaltest_u8.val(), 0x10);
     assert_eq!(genvaltest_u16.val(), 0x0101);
     assert_eq!(genvaltest_u32.val(), 0x02020202);
     assert_eq!(genvaltest_u64.val(), 0x0303030303030303);
-    assert_eq!(genvaltest_arr.val(), [0x04, 0x04, 0x04]);
 
-    genvaltest_u8 += 10;
+    assert_eq!(*arrvaltest.mut_ref(), [0x04, 0x04, 0x04]);
 
-    //assert_eq!(&genvaltest_u8 + &genvaltest_u8, 0x20);
+    genvaltest_u8 += 0x10;
+    assert_eq!(genvaltest_u8.val(), 0x20);
 
     genvaltest_u8.set(0x99);
     genvaltest_u16.set(0x9999);
     genvaltest_u32.set(0x99999999);
     genvaltest_u64.set(0x9999999999999999);
-    genvaltest_arr.set([0x99, 0x99, 0x99]);
+    
+    arrvaltest.set(&[0x99,0x99,0x99]);
 
     assert_eq!(genvaltest_u8.val(), 0x99);
     assert_eq!(genvaltest_u16.val(), 0x9999);
     assert_eq!(genvaltest_u32.val(), 0x99999999);
     assert_eq!(genvaltest_u64.val(), 0x9999999999999999);
-    assert_eq!(genvaltest_arr.val(), [0x99, 0x99, 0x99]);
+
+    assert_eq!(*arrvaltest.mut_ref(), [0x99, 0x99, 0x99]);
 
     //assert_eq!(buf, v.clone());
 }
