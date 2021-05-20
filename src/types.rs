@@ -18,6 +18,20 @@ where
     val: &'a mut [u8],
     _marker: std::marker::PhantomData<T>,
 }
+pub trait ModSimpleVal<'a, T> {
+    fn val(&self) -> T;
+    fn set(&mut self, v: T);
+}
+
+impl<'a> ModSimpleVal<'a, u8> for SimpleVal<'a, u8> {
+    fn val(&self) -> u8 {
+        self.val[0]
+    }
+
+    fn set(&mut self, v: u8) {
+        self.val[0] = v
+    }
+}
 
 impl<'a, T> SimpleVal<'a, T>
 where
@@ -36,6 +50,51 @@ where
     }
 }
 
+#[macro_export]
+macro_rules! impl_modsimpleVal {
+    ($target:tt, $type:tt, $read:ident, $write:ident, $endian:ident) => {
+        impl<'a> ModSimpleVal<'a, $type> for $target<'a, $type> {
+            fn val(&self) -> $type {
+                $endian::$read(self.val)
+            }
+
+            fn set(&mut self, v: $type) {
+                $endian::$write(self.val, v)
+            }
+        }
+    };
+}
+
+impl_modsimpleVal!(SimpleVal, u16, read_u16, write_u16, LittleEndian);
+impl_modsimpleVal!(SimpleVal, u32, read_u32, write_u32, LittleEndian);
+impl_modsimpleVal!(SimpleVal, u64, read_u64, write_u64, LittleEndian);
+
+#[macro_export]
+macro_rules! impl_oper_assign_overload {
+    ($oper_name:ident, $bound:ident, $fname:ident, $oper:tt, $gen:tt) => {
+        impl<'a, $gen> $oper_name<$gen> for SimpleVal<'a, $gen>
+        where
+            SimpleVal<'a, $gen>: ModSimpleVal<'a, $gen>,
+            $gen: $bound + $bound<Output = $gen>,
+        {
+            fn $fname(&mut self, rhs: $gen) {
+                self.set(self.val() $oper rhs)
+            }
+        }
+    };
+}
+
+impl_oper_assign_overload!(AddAssign, Add, add_assign, +, T);
+impl_oper_assign_overload!(SubAssign, Sub, sub_assign, -, T);
+impl_oper_assign_overload!(MulAssign, Mul, mul_assign, *, T);
+impl_oper_assign_overload!(DivAssign, Div, div_assign, /, T);
+
+#[derive(Debug, PartialEq)]
+pub struct ArrayVal<'a, T> {
+    buf: Rc<RefCell<&'a mut [u8]>>,
+    _marker: std::marker::PhantomData<T>,
+}
+
 impl<'a, T> ArrayVal<'a, T> {
     pub fn new(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
@@ -47,27 +106,6 @@ impl<'a, T> ArrayVal<'a, T> {
             },
             leftover,
         )
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct ArrayVal<'a, T> {
-    buf: Rc<RefCell<&'a mut [u8]>>,
-    _marker: std::marker::PhantomData<T>,
-}
-
-pub trait ModSimpleVal<'a, T> {
-    fn val(&self) -> T;
-    fn set(&mut self, v: T);
-}
-
-impl<'a> ModSimpleVal<'a, u8> for SimpleVal<'a, u8> {
-    fn val(&self) -> u8 {
-        self.val[0]
-    }
-
-    fn set(&mut self, v: u8) {
-        self.val[0] = v
     }
 }
 
@@ -92,45 +130,6 @@ impl<'a, const L: usize> ArrayVal<'a, [u8; L]> {
         }
     }
 }
-
-#[macro_export]
-macro_rules! impl_modSimpleVal {
-    ($target:tt, $type:tt, $read:ident, $write:ident, $endian:ident) => {
-        impl<'a> ModSimpleVal<'a, $type> for $target<'a, $type> {
-            fn val(&self) -> $type {
-                $endian::$read(self.val)
-            }
-
-            fn set(&mut self, v: $type) {
-                $endian::$write(self.val, v)
-            }
-        }
-    };
-}
-
-impl_modSimpleVal!(SimpleVal, u16, read_u16, write_u16, LittleEndian);
-impl_modSimpleVal!(SimpleVal, u32, read_u32, write_u32, LittleEndian);
-impl_modSimpleVal!(SimpleVal, u64, read_u64, write_u64, LittleEndian);
-
-#[macro_export]
-macro_rules! impl_oper_assign_overload {
-    ($oper_name:ident, $bound:ident, $fname:ident, $oper:tt, $gen:tt) => {
-        impl<'a, $gen> $oper_name<$gen> for SimpleVal<'a, $gen>
-        where
-            SimpleVal<'a, $gen>: ModSimpleVal<'a, $gen>,
-            $gen: $bound + $bound<Output = $gen>,
-        {
-            fn $fname(&mut self, rhs: $gen) {
-                self.set(self.val() $oper rhs)
-            }
-        }
-    };
-}
-
-impl_oper_assign_overload!(AddAssign, Add, add_assign, +, T);
-impl_oper_assign_overload!(SubAssign, Sub, sub_assign, -, T);
-impl_oper_assign_overload!(MulAssign, Mul, mul_assign, *, T);
-impl_oper_assign_overload!(DivAssign, Div, div_assign, /, T);
 
 #[allow(dead_code)]
 #[derive(MutViewNew)]
@@ -204,7 +203,10 @@ fn arrayval_set() {
 
     assert_eq_hex!(buf[15..19], new_data);
 }
-/*
+
+
+
+/* 
 #[test]
 fn SimpleVal_add() -> Result<(), ()> {
     let data = SimpleVal_TESTDATA.to_vec();
