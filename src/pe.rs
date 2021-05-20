@@ -1,3 +1,4 @@
+/* 
 use crate::fmt_err;
 use crate::{
     dos_hdr::DosHeader, imports::ImportDescriptor, nt_hdr::*, relocs::Relocations,
@@ -10,7 +11,6 @@ use assert_hex::assert_eq_hex;
 use std::io::prelude::*;
 use std::io::Cursor;
 use std::io::SeekFrom;
-
 pub struct PeHeader {
     pub dos_hdr: DosHeader,
     pub nt_hdr: NtHeader,
@@ -343,3 +343,4 @@ pub fn parse_test_pe() -> Result<(PeHeader, Cursor<Vec<u8>>), String> {
 
     Ok((pe_hdr, rwbuf))
 }
+*/

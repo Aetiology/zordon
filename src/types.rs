@@ -1,7 +1,7 @@
 use crate::fmt_err;
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
-use derive_header::GenValNew;
+use derive_header::MutSlice;
 use std::cell::{RefCell, RefMut};
 use std::io::prelude::*;
 use std::io::SeekFrom;
@@ -13,49 +13,29 @@ use std::rc::Rc;
 #[allow(unused_imports)]
 #[macro_use]
 use assert_hex::assert_eq_hex;
-
-pub trait ModGenVal<T> {
-    fn read<R: Read + Seek>(reader: &mut R) -> Result<T, String>;
-    fn write<W: Write + Seek>(writer: &mut W, val: &T) -> Result<(), String>;
-    fn add_val(&mut self, val: T);
-}
-
-#[derive(Debug, PartialEq)]
-pub struct GenVal<T> {
-    val: T,
-    offset: u64,
-}
-
-impl<T> Deref for GenVal<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.val
-    }
-}
 ///###
 #[derive(Debug, PartialEq)]
-pub struct GenValExp<'a, T>
+pub struct SimpleVal<'a, T>
 where
-    Self: ModGenValExp<'a, T>,
+    Self: ModSimpleVal<'a, T>,
 {
     val: &'a mut [u8],
     _marker: std::marker::PhantomData<T>,
 }
 
-impl<'a, T> GenValExp<'a, T>
+impl<'a, T> SimpleVal<'a, T>
 where
-    Self: ModGenValExp<'a, T>,
+    Self: ModSimpleVal<'a, T>,
 {
-    pub fn new(a: &'a mut [u8]) -> (Self, &'a mut [u8]) {
-        let (val, r) = a.split_at_mut(std::mem::size_of::<T>());
+    pub fn new(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
+        let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
         (
             Self {
                 val,
                 _marker: std::marker::PhantomData::<T>,
             },
-            r,
+            leftover,
         )
     }
 }
@@ -64,15 +44,15 @@ impl<'a, T> ArrayVal<'a, T>
 where
     Self: ModArrayVal<'a>,
 {
-    pub fn new(a: &'a mut [u8]) -> (Self, &'a mut [u8]) {
-        let (val, r) = a.split_at_mut(std::mem::size_of::<T>());
+    pub fn new(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
+        let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
         (
             Self {
                 buf: Rc::new(RefCell::new(val)),
                 _marker: std::marker::PhantomData::<T>,
             },
-            r,
+            leftover,
         )
     }
 }
@@ -86,7 +66,7 @@ where
     _marker: std::marker::PhantomData<T>,
 }
 
-pub trait ModGenValExp<'a, T> {
+pub trait ModSimpleVal<'a, T> {
     fn val(&self) -> T;
     fn set(&mut self, v: T);
 }
@@ -97,7 +77,7 @@ pub trait ModArrayVal<'a> {
     fn set(&mut self, src: &[u8]);
 }
 
-impl<'a> ModGenValExp<'a, u8> for GenValExp<'a, u8> {
+impl<'a> ModSimpleVal<'a, u8> for SimpleVal<'a, u8> {
     fn val(&self) -> u8 {
         self.val[0]
     }
@@ -126,9 +106,9 @@ impl<'a, const L: usize> ModArrayVal<'a> for ArrayVal<'a, [u8; L]> {
 }
 
 #[macro_export]
-macro_rules! impl_modgenval {
+macro_rules! impl_modSimpleVal {
     ($target:tt, $type:tt, $read:ident, $write:ident, $endian:ident) => {
-        impl<'a> ModGenValExp<'a, $type> for $target<'a, $type> {
+        impl<'a> ModSimpleVal<'a, $type> for $target<'a, $type> {
             fn val(&self) -> $type {
                 $endian::$read(self.val)
             }
@@ -140,17 +120,17 @@ macro_rules! impl_modgenval {
     };
 }
 
-impl_modgenval!(GenValExp, u16, read_u16, write_u16, LittleEndian);
-impl_modgenval!(GenValExp, u32, read_u32, write_u32, LittleEndian);
-impl_modgenval!(GenValExp, u64, read_u64, write_u64, LittleEndian);
+impl_modSimpleVal!(SimpleVal, u16, read_u16, write_u16, LittleEndian);
+impl_modSimpleVal!(SimpleVal, u32, read_u32, write_u32, LittleEndian);
+impl_modSimpleVal!(SimpleVal, u64, read_u64, write_u64, LittleEndian);
 
 #[macro_export]
 macro_rules! impl_oper_assign_overload {
     ($oper_name:ident, $bound:ident, $fname:ident, $oper:tt, $gen:tt) => {
-        impl<'a, $gen> $oper_name<$gen> for GenValExp<'a, $gen>
+        impl<'a, $gen> $oper_name<$gen> for SimpleVal<'a, $gen>
         where
-            GenValExp<'a, T>: ModGenValExp<'a, T>,
-            T: $bound + $bound<Output = T>,
+            SimpleVal<'a, $gen>: ModSimpleVal<'a, $gen>,
+            T: $bound + $bound<Output = $gen>,
         {
             fn $fname(&mut self, rhs: $gen) {
                 self.set(self.val() $oper rhs)
@@ -164,395 +144,145 @@ impl_oper_assign_overload!(SubAssign, Sub, sub_assign, -, T);
 impl_oper_assign_overload!(MulAssign, Mul, mul_assign, *, T);
 impl_oper_assign_overload!(DivAssign, Div, div_assign, /, T);
 
+/*
 #[test]
-fn testgenvalexp() {
+fn testSimpleVal() {
     let v = vec![
         0x10, 0x01, 0x01, 0x02, 0x02, 0x2, 0x02, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
         0x04, 0x04, 0x04,
     ];
     let mut buf = v.clone();
-    let (mut genvaltest_u8, r) = GenValExp::<u8>::new(&mut buf);
 
-    let (mut genvaltest_u16, r) = GenValExp::<u16>::new(r);
-    let (mut genvaltest_u32, r) = GenValExp::<u32>::new(r);
-    let (mut genvaltest_u64, r) = GenValExp::<u64>::new(r);
-    let (mut arrvaltest, r) = ArrayVal::<[u8; 3]>::new(r);
+    let mut slice_info = SliceInfo::default();
 
-    assert_eq!(genvaltest_u8.val(), 0x10);
-    assert_eq!(genvaltest_u16.val(), 0x0101);
-    assert_eq!(genvaltest_u32.val(), 0x02020202);
-    assert_eq!(genvaltest_u64.val(), 0x0303030303030303);
+    slice_info.orig_buf = &mut buf;
 
-    assert_eq!(*arrvaltest.mut_ref(), [0x04, 0x04, 0x04]);
+    let mut SimpleValtest_u8 = SimpleVal::<u8>::new(&mut slice_info);
+    let mut SimpleValtest_u16 = SimpleVal::<u16>::new(&mut slice_info);
+    let mut SimpleValtest_u32 = SimpleVal::<u32>::new(&mut slice_info);
+    let mut SimpleValtest_u64 = SimpleVal::<u64>::new(&mut slice_info);
+    //let mut ArrayValtest = ArrayVal::<[u8; 3]>::new(buf);
 
-    genvaltest_u8 += 0x10;
-    assert_eq!(genvaltest_u8.val(), 0x20);
+    assert_eq!(SimpleValtest_u8.val(), 0x10);
+    assert_eq!(SimpleValtest_u16.val(), 0x0101);
+    assert_eq!(SimpleValtest_u32.val(), 0x02020202);
+    assert_eq!(SimpleValtest_u64.val(), 0x0303030303030303);
 
-    genvaltest_u8.set(0x99);
-    genvaltest_u16.set(0x9999);
-    genvaltest_u32.set(0x99999999);
-    genvaltest_u64.set(0x9999999999999999);
+   // assert_eq!(*ArrayValtest.mut_ref(), [0x04, 0x04, 0x04]);
 
-    arrvaltest.set(&[0x99, 0x99, 0x99]);
+    SimpleValtest_u8 += 0x10;
+    assert_eq!(SimpleValtest_u8.val(), 0x20);
 
-    assert_eq!(genvaltest_u8.val(), 0x99);
-    assert_eq!(genvaltest_u16.val(), 0x9999);
-    assert_eq!(genvaltest_u32.val(), 0x99999999);
-    assert_eq!(genvaltest_u64.val(), 0x9999999999999999);
+    SimpleValtest_u8.set(0x99);
+    SimpleValtest_u16.set(0x9999);
+    SimpleValtest_u32.set(0x99999999);
+    SimpleValtest_u64.set(0x9999999999999999);
 
-    assert_eq!(*arrvaltest.mut_ref(), [0x99, 0x99, 0x99]);
+    //ArrayValtest.set(&[0x99, 0x99, 0x99]);
+
+    assert_eq!(SimpleValtest_u8.val(), 0x99);
+    assert_eq!(SimpleValtest_u16.val(), 0x9999);
+    assert_eq!(SimpleValtest_u32.val(), 0x99999999);
+    assert_eq!(SimpleValtest_u64.val(), 0x9999999999999999);
+
+   //assert_eq!(*ArrayValtest.mut_ref(), [0x99, 0x99, 0x99]);
 
     //assert_eq!(buf, v.clone());
 }
 
-/*
-impl<'a, T, const L: usize> ModGenValExp<'a, T> for GenValExp<'a, T, { L }> {
-    fn slice(s: &'_ mut [u8]) -> &'_ mut [u8] {
-        let (s, b) = s.split_at_mut(L);
+*/
+// ####
 
-        b
+#[allow(dead_code)]
+#[derive(MutSlice)]
+struct SimpleValTest<'a> {
+    pub unsigned_8: SimpleVal<'a, u8>,
+    pub unsigned_16: SimpleVal<'a, u16>,
+    pub unsigned_32: SimpleVal<'a, u32>,
+    pub unsigned_64: SimpleVal<'a, u64>,
+    pub unsigned_arr: ArrayVal<'a, [u8; 4]>,
+}
+
+/*
+impl<'a> SimpleValTest<'a> {
+    pub fn new(buf: &'a mut [u8]) -> Self {
+
+        let (unsigned_8, buf) = SimpleVal::new(buf);
+        let (unsigned_16, buf) = SimpleVal::new(buf);
+        let (unsigned_32, buf) = SimpleVal::new(buf);
+        let (unsigned_64, buf) = SimpleVal::new(buf);
+        //let unsigned_arr = ArrayVal::new(&mut slice_bufs);
+
+        Self {
+            unsigned_8,
+            unsigned_16,
+            unsigned_32,
+            unsigned_64,
+            //            unsigned_arr,
+        }
     }
 }
 */
-///###
-
-impl<T> GenVal<T>
-where
-    T: std::fmt::Debug,
-    GenVal<T>: ModGenVal<T>,
-{
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, String> {
-        let offset = reader.stream_position().map_err(|e| fmt_err!("{}", e))?;
-
-        Ok(Self {
-            val: Self::read(reader)?,
-            offset,
-        })
-    }
-
-    pub fn get_ref(&self) -> &T {
-        &self.val
-    }
-
-    /**
-    ```
-     # #[macro_use]
-     # use assert_hex::assert_eq_hex;
-     # use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
-     # use derive_header::GenValNew;
-     # use zordon::types::GenVal;
-     # use std::io::{Read, Write, Seek};
-    #[derive(GenValNew)]
-    struct GenValTest {
-        pub unsigned_8: GenVal<u8>,
-        pub unsigned_16: GenVal<u16>,
-        pub unsigned_32: GenVal<u32>,
-    }
-
-    let mut buf = std::io::Cursor::new(vec![0x0, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
-    let mut genvaltest = GenValTest::new(&mut buf).unwrap();
-
-    assert_eq_hex!(genvaltest.unsigned_32.offset(), 0x3);
-    */
-    pub fn offset(&self) -> u64 {
-        self.offset
-    }
-
-    fn seek_to_val<S: Seek>(&mut self, seeker: &mut S) -> Result<u64, String> {
-        seeker.seek(SeekFrom::Start(self.offset)).map_err(|e| {
-            fmt_err!(
-                "Failed to seek to offset: {} for val: {:#X?} - {}",
-                self.offset,
-                self.val,
-                e
-            )
-        })
-    }
-
-    fn seek_write<W: Write + Seek>(&mut self, writer: &mut W) -> Result<(), String> {
-        self.seek_to_val(writer)?;
-        Self::write(writer, &self.val)
-    }
-
-    /**
-    ```
-     # #[macro_use]
-     # use assert_hex::assert_eq_hex;
-     # use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
-     # use derive_header::GenValNew;
-     # use zordon::types::GenVal;
-     # use std::io::{Read, Write, Seek};
-    #[derive(GenValNew)]
-    struct GenValTest {
-        pub unsigned_8: GenVal<u8>,
-    }
-
-    let mut buf = std::io::Cursor::new(vec![0x0]);
-    let mut genvaltest = GenValTest::new(&mut buf).unwrap();
-
-    assert_eq_hex!(*genvaltest.unsigned_8, 0x0);
-
-    genvaltest
-        .unsigned_8
-        .set(&mut buf, 0x10)
-        .unwrap();
-
-    assert_eq_hex!(*genvaltest.unsigned_8, 0x10);
-    */
-    pub fn set<W: Write + Seek>(&mut self, writer: &mut W, val: T) -> Result<(), String> {
-        self.val = val;
-        self.seek_write(writer)
-    }
-    /**
-    ```
-     # #[macro_use]
-     # use assert_hex::assert_eq_hex;
-     # use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
-     # use derive_header::GenValNew;
-     # use zordon::types::GenVal;
-     # use std::io::{Read, Write, Seek};
-    #[derive(GenValNew)]
-    struct GenValTest {
-        pub unsigned_8: GenVal<u8>,
-    }
-
-    let mut buf = std::io::Cursor::new(vec![0x10]);
-    let mut genvaltest = GenValTest::new(&mut buf).unwrap();
-
-    genvaltest
-        .unsigned_8
-        .add(&mut buf, 0x10)
-        .unwrap();
-
-    assert_eq_hex!(*genvaltest.unsigned_8, 0x20);
-    */
-    pub fn add<W: Write + Seek>(&mut self, writer: &mut W, val: T) -> Result<(), String> {
-        self.add_val(val);
-        self.seek_write(writer)
-    }
-}
-
-impl<T, const L: usize> ModGenVal<[u8; L]> for GenVal<T>
-where
-    [u8; L]: Default,
-{
-    fn read<R: Read + Seek>(reader: &mut R) -> Result<[u8; L], String> {
-        let mut buf: [u8; L] = Default::default();
-
-        reader
-            .read_exact(&mut buf)
-            .map_err(|e| fmt_err!("Could not read bytes into buff: {}", e))?;
-
-        Ok(buf)
-    }
-
-    fn write<W: Write + Seek>(writer: &mut W, val: &[u8; L]) -> Result<(), String> {
-        writer.write_all(val).map_err(|e| {
-            fmt_err!(
-                "Failed to write bytes at offset: {:#?} - {}",
-                writer.stream_position(),
-                e
-            )
-        })?;
-
-        Ok(())
-    }
-
-    fn add_val(&mut self, _: [u8; L]) {
-        todo!()
-    }
-}
-
-impl ModGenVal<u8> for GenVal<u8> {
-    fn read<R: Read + Seek>(reader: &mut R) -> Result<u8, String> {
-        let r = reader.read_u8().map_err(|e| {
-            fmt_err!(
-                "Failed to read u8 val at: {:#?} - {}",
-                reader.stream_position(),
-                e
-            )
-        })?;
-
-        Ok(r)
-    }
-
-    fn write<W: Write + Seek>(writer: &mut W, val: &u8) -> Result<(), String> {
-        writer.write_u8(*val).map_err(|e| {
-            fmt_err!(
-                "Failed to write u8 val at: {:#?} - {}",
-                writer.stream_position(),
-                e
-            )
-        })?;
-
-        Ok(())
-    }
-
-    fn add_val(&mut self, val: u8) {
-        self.val += val
-    }
-}
-
-impl ModGenVal<u16> for GenVal<u16> {
-    fn read<R: Read + Seek>(reader: &mut R) -> Result<u16, String> {
-        let r = reader.read_u16::<LittleEndian>().map_err(|e| {
-            fmt_err!(
-                "Failed to read u16 val at: {:#?} - {}",
-                reader.stream_position(),
-                e
-            )
-        })?;
-
-        Ok(r)
-    }
-
-    fn write<W: Write + Seek>(writer: &mut W, val: &u16) -> Result<(), String> {
-        writer.write_u16::<LittleEndian>(*val).map_err(|e| {
-            fmt_err!(
-                "Failed to write u16 val at: {:#?} - {}",
-                writer.stream_position(),
-                e
-            )
-        })?;
-
-        Ok(())
-    }
-
-    fn add_val(&mut self, val: u16) {
-        self.val += val
-    }
-}
-
-impl ModGenVal<u32> for GenVal<u32> {
-    fn write<W: Write + Seek>(writer: &mut W, val: &u32) -> Result<(), String> {
-        writer.write_u32::<LittleEndian>(*val).map_err(|e| {
-            fmt_err!(
-                "Failed to write u32 val at: {:#?} - {}",
-                writer.stream_position(),
-                e
-            )
-        })?;
-
-        Ok(())
-    }
-
-    fn read<R: Read + Seek>(reader: &mut R) -> Result<u32, String> {
-        let r = reader.read_u32::<LittleEndian>().map_err(|e| {
-            fmt_err!(
-                "Failed to read u32 val at: {:#?} - {}",
-                reader.stream_position(),
-                e
-            )
-        })?;
-
-        Ok(r)
-    }
-
-    fn add_val(&mut self, val: u32) {
-        self.val += val
-    }
-}
-
-impl ModGenVal<u64> for GenVal<u64> {
-    fn write<W: Write + Seek>(writer: &mut W, val: &u64) -> Result<(), String> {
-        writer.write_u64::<LittleEndian>(*val).map_err(|e| {
-            fmt_err!(
-                "Failed to write u32 val at: {:#?} - {}",
-                writer.stream_position(),
-                e
-            )
-        })?;
-
-        Ok(())
-    }
-
-    fn read<R: Read + Seek>(reader: &mut R) -> Result<u64, String> {
-        let r = reader.read_u64::<LittleEndian>().map_err(|e| {
-            fmt_err!(
-                "Failed to read u32 val at: {:#?} - {}",
-                reader.stream_position(),
-                e
-            )
-        })?;
-
-        Ok(r)
-    }
-
-    fn add_val(&mut self, val: u64) {
-        self.val += val
-    }
-}
-
-// ####
+/*
 #[allow(dead_code)]
-#[derive(GenValNew)]
-struct GenValTest {
-    pub unsigned_8: GenVal<u8>,
-    pub unsigned_16: GenVal<u16>,
-    pub unsigned_32: GenVal<u32>,
-    pub unsigned_64: GenVal<u64>,
-    pub unsigned_u8_arr: GenVal<[u8; 4]>,
-}
-
-#[allow(dead_code)]
-const GENVAL_TESTDATA: [u8; 0x13] = [
+const SimpleVal_TESTDATA: [u8; 0x13] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13,
 ];
 /*
 #[test]
-fn genval_offset() -> Result<(), ()> {
+fn SimpleVal_offset() -> Result<(), ()> {
     let mut buf = std::io::Cursor::new(vec![0x0, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
-    let mut genvaltest = GenValTest::new(&mut buf).unwrap();
+    let mut SimpleValtest = SimpleValTest::new(&mut buf).unwrap();
 
-    assert_eq_hex!(genvaltest.unsigned_32.offset(), 0x3);
+    assert_eq_hex!(SimpleValtest.unsigned_32.offset(), 0x3);
 
     Ok(())
 }
 */
 #[test]
-fn genval_val() -> Result<(), ()> {
-    let data = GENVAL_TESTDATA.to_vec();
+fn SimpleVal_val() -> Result<(), ()> {
+    let data = SimpleVal_TESTDATA.to_vec();
     let mut buf = std::io::Cursor::new(data);
 
-    let genvaltest = GenValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
+    let SimpleValtest = SimpleValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
 
-    assert_eq_hex!(*genvaltest.unsigned_8, 01);
-    assert_eq_hex!(*genvaltest.unsigned_16, 0x0302);
-    assert_eq_hex!(*genvaltest.unsigned_32, 0x07060504);
-    assert_eq_hex!(*genvaltest.unsigned_64, 0x0F0E0D0C0B0A0908);
-    assert_eq_hex!(*genvaltest.unsigned_u8_arr, [0x10, 0x11, 0x12, 0x13]);
+    assert_eq_hex!(*SimpleValtest.unsigned_8, 01);
+    assert_eq_hex!(*SimpleValtest.unsigned_16, 0x0302);
+    assert_eq_hex!(*SimpleValtest.unsigned_32, 0x07060504);
+    assert_eq_hex!(*SimpleValtest.unsigned_64, 0x0F0E0D0C0B0A0908);
+    assert_eq_hex!(*SimpleValtest.unsigned_u8_arr, [0x10, 0x11, 0x12, 0x13]);
 
     Ok(())
 }
 
 #[test]
-fn genval_set() -> Result<(), ()> {
-    let data = GENVAL_TESTDATA.to_vec();
+fn SimpleVal_set() -> Result<(), ()> {
+    let data = SimpleVal_TESTDATA.to_vec();
     let mut buf = std::io::Cursor::new(data);
 
-    let mut genvaltest = GenValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
+    let mut SimpleValtest = SimpleValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
 
-    genvaltest
+    SimpleValtest
         .unsigned_8
         .set(&mut buf, 0x13)
         .map_err(|e| eprintln!("{}", e))?;
 
-    genvaltest
+    SimpleValtest
         .unsigned_16
         .set(&mut buf, 0x1112)
         .map_err(|e| eprintln!("{}", e))?;
 
-    genvaltest
+    SimpleValtest
         .unsigned_32
         .set(&mut buf, 0x0D0E0F10)
         .map_err(|e| eprintln!("{}", e))?;
 
-    genvaltest
+    SimpleValtest
         .unsigned_64
         .set(&mut buf, 0x05060708090A0B0C)
         .map_err(|e| eprintln!("{}", e))?;
 
-    genvaltest
+    SimpleValtest
         .unsigned_u8_arr
         .set(&mut buf, [04, 03, 02, 01])
         .map_err(|e| eprintln!("{}", e))?;
@@ -565,41 +295,41 @@ fn genval_set() -> Result<(), ()> {
     assert_eq_hex!(data_ref[7..15], [0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5]);
     assert_eq_hex!(data_ref[15..19], [0x4, 0x3, 0x2, 0x1]);
 
-    assert_eq_hex!(*genvaltest.unsigned_8, 0x13);
-    assert_eq_hex!(*genvaltest.unsigned_16, 0x1112);
-    assert_eq_hex!(*genvaltest.unsigned_32, 0x0D0E0F10);
-    assert_eq_hex!(*genvaltest.unsigned_64, 0x05060708090A0B0C);
-    assert_eq_hex!(*genvaltest.unsigned_u8_arr, [0x4, 0x3, 0x2, 0x1]);
+    assert_eq_hex!(*SimpleValtest.unsigned_8, 0x13);
+    assert_eq_hex!(*SimpleValtest.unsigned_16, 0x1112);
+    assert_eq_hex!(*SimpleValtest.unsigned_32, 0x0D0E0F10);
+    assert_eq_hex!(*SimpleValtest.unsigned_64, 0x05060708090A0B0C);
+    assert_eq_hex!(*SimpleValtest.unsigned_u8_arr, [0x4, 0x3, 0x2, 0x1]);
 
     Ok(())
 }
 
 #[test]
-fn genval_add() -> Result<(), ()> {
-    let data = GENVAL_TESTDATA.to_vec();
+fn SimpleVal_add() -> Result<(), ()> {
+    let data = SimpleVal_TESTDATA.to_vec();
     let mut buf = std::io::Cursor::new(data);
 
-    let mut genvaltest = GenValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
+    let mut SimpleValtest = SimpleValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
     const VAL_TO_ADD: u8 = 0x10;
 
     // For the moment, we are not using Add for arrays
 
-    genvaltest
+    SimpleValtest
         .unsigned_8
         .add(&mut buf, VAL_TO_ADD)
         .map_err(|e| eprintln!("{}", e))?;
 
-    genvaltest
+    SimpleValtest
         .unsigned_16
         .add(&mut buf, VAL_TO_ADD as u16)
         .map_err(|e| eprintln!("{}", e))?;
 
-    genvaltest
+    SimpleValtest
         .unsigned_32
         .add(&mut buf, VAL_TO_ADD as u32)
         .map_err(|e| eprintln!("{}", e))?;
 
-    genvaltest
+    SimpleValtest
         .unsigned_64
         .add(&mut buf, VAL_TO_ADD as u64)
         .map_err(|e| eprintln!("{}", e))?;
@@ -614,3 +344,5 @@ fn genval_add() -> Result<(), ()> {
 
     Ok(())
 }
+
+*/

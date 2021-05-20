@@ -4,7 +4,7 @@ use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, DeriveInput};
 
-#[proc_macro_derive(GenValNew)]
+#[proc_macro_derive(MutSlice)]
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let struct_name = &ast.ident;
@@ -25,29 +25,66 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
         //TODO: Match using regex
         let converted_type = |ty_string: &str| {
-            if ty_string.starts_with("GenVal") {
-                return quote! {#name: GenVal::new(reader)?};
+            if ty_string.starts_with("SimpleVal") {
+                return quote! {let (#name, buf) = SimpleVal::new(buf)};
+            } else if ty_string.starts_with("ArrayVal") {
+                return quote! {let (#name, buf) = ArrayVal::new(buf)};
             } else if ty_string.starts_with("Option") {
                 return quote! {#name: <#ty as ::core::default::Default>::default()};
             } else {
-                return quote! {#name: <#ty>::new(reader)?};
+                return quote! {#name: <#ty>::new(buf)};
             }
         };
 
         converted_type(&ty_string)
     });
 
+    let field_names = fields.iter().map(|f| {
+        let name = &f.ident;
+
+        quote! {#name}
+    });
+
     let expanded = quote! {
-        impl #struct_name {
-            pub fn new<R: Read + Seek>(reader: &mut R) -> Result<#struct_name, String> {
-                Ok(
-                    #struct_name {
-                       #(#new_fields,)*
-                    }
-                )
+        impl<'a> #struct_name<'a> {
+            pub fn new(buf: &'a mut [u8]) -> (Self, &'a mut [u8]){
+                    #(#new_fields;)*
+
+                    (Self {
+                       #(#field_names,)*
+                    }, buf)
             }
         }
     };
+    /*
+        struct SimpleValTest<'a> {
+        pub unsigned_8: SimpleVal<'a, u8>,
+        pub unsigned_16: SimpleVal<'a, u16>,
+        pub unsigned_32: SimpleVal<'a, u32>,
+        pub unsigned_64: SimpleVal<'a, u64>,
+        pub unsigned_arr: ArrayVal<'a, [u8; 4]>,
+    }
+    impl<'a> SimpleValTest<'a> {
+        pub fn new(buf: &'a mut [u8]) -> (Self, &'a mut [u8]) {
+            let (unsigned_8, leftovers) = SimpleVal::new(buf);
+            let (unsigned_16, leftovers) = SimpleVal::new(leftovers);
+            let (unsigned_32, leftovers) = SimpleVal::new(leftovers);
+            let (unsigned_64, leftovers) = SimpleVal::new(leftovers);
+            let (unsigned_arr, leftovers) = ArrayVal::new(leftovers);
+
+            (
+                Self {
+                    unsigned_8,
+                    unsigned_16,
+                    unsigned_32,
+                    unsigned_64,
+                    unsigned_arr,
+                },
+                leftovers,
+            )
+        }
+    }
+        */
 
     expanded.into()
 }

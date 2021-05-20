@@ -5,7 +5,7 @@ use std::io::Read;
 #[macro_use]
 #[allow(unused_imports)]
 use assert_hex::assert_eq_hex;
-
+/*
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RelocationType {
     // For now skip/ignore the other types
@@ -33,21 +33,21 @@ impl RelocationType {
 
 #[derive(PartialEq)]
 pub struct Relocations {
-    pub virt_addr: GenVal<u32>,
-    pub size_of_block: GenVal<u32>,
-    pub block: Vec<GenVal<u16>>,
+    pub virt_addr: SimpleVal<u32>,
+    pub size_of_block: SimpleVal<u32>,
+    pub block: Vec<SimpleVal<u16>>,
 }
 
 impl Relocations {
     pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, String> {
-        let virt_addr = GenVal::new(reader)?;
-        let size_of_block: GenVal<u32> = GenVal::new(reader)?;
+        let virt_addr = SimpleVal::new(reader)?;
+        let size_of_block: SimpleVal<u32> = SimpleVal::new(reader)?;
 
         let entry_count = ((*size_of_block - 8) / 2) as usize;
-        let mut block: Vec<GenVal<u16>> = Vec::with_capacity(entry_count);
+        let mut block: Vec<SimpleVal<u16>> = Vec::with_capacity(entry_count);
 
         for _ in 0..entry_count {
-            block.push(GenVal::new(reader)?);
+            block.push(SimpleVal::new(reader)?);
         }
 
         Ok(Self {
@@ -95,3 +95,5 @@ fn relocations_new() {
     assert_eq!(Relocations::to_offset(*relocs.block[0]), 0x17);
     assert_eq!(Relocations::to_offset(*relocs.block[1]), 0x1F);
 }
+
+*/
