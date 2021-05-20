@@ -6,7 +6,7 @@ use std::cell::{RefCell, RefMut};
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::io::{Read, Write};
-use std::ops::{Add, AddAssign, Deref};
+use std::ops::{Add, AddAssign, Deref, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
 #[allow(unused_attributes)]
 #[macro_use]
@@ -144,48 +144,25 @@ impl_modgenval!(GenValExp, u16, read_u16, write_u16, LittleEndian);
 impl_modgenval!(GenValExp, u32, read_u32, write_u32, LittleEndian);
 impl_modgenval!(GenValExp, u64, read_u64, write_u64, LittleEndian);
 
-/*
-impl<'a, T> Add<Self> for GenValExp<'a, T>
-where
-    GenValExp<'a, T>: ModGenValExp<'a>,
-    <GenValExp<'a, T> as ModGenValExp<'a>>::Output: Add,
-{
-    type Output = ;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        self.val() + rhs.val()
-    }
-}
-*/
-
-impl<'a, T> AddAssign<T> for GenValExp<'a, T>
-where
-    GenValExp<'a, T>: ModGenValExp<'a, T>,
-    T: Add + Add<Output = T>,
-{
-    fn add_assign(&mut self, rhs: T) {
-        self.set(self.val() + rhs);
-    }
-}
-
-/*
 #[macro_export]
 macro_rules! impl_oper_assign_overload {
-    ($oper_name:ident, $fname:ident, $oper:tt, $target:ty, $gen:tt) => {
-        impl<'a, $gen: $oper_name> $oper_name<$target> for $target
+    ($oper_name:ident, $bound:ident, $fname:ident, $oper:tt, $gen:tt) => {
+        impl<'a, $gen> $oper_name<$gen> for GenValExp<'a, $gen>
         where
-            $target: ModGenValExp<'a>,
-
+            GenValExp<'a, T>: ModGenValExp<'a, T>,
+            T: $bound + $bound<Output = T>,
         {
-            fn $fname(&mut self, rhs: Self) {
-                self.set(self.val() + rhs.val())
+            fn $fname(&mut self, rhs: $gen) {
+                self.set(self.val() $oper rhs)
             }
         }
     };
 }
-*/
 
-//impl_oper_assign_overload!(AddAssign, add_assign, +=, GenValExp<'a, T>, T);
+impl_oper_assign_overload!(AddAssign, Add, add_assign, +, T);
+impl_oper_assign_overload!(SubAssign, Sub, sub_assign, -, T);
+impl_oper_assign_overload!(MulAssign, Mul, mul_assign, *, T);
+impl_oper_assign_overload!(DivAssign, Div, div_assign, /, T);
 
 #[test]
 fn testgenvalexp() {
@@ -215,8 +192,8 @@ fn testgenvalexp() {
     genvaltest_u16.set(0x9999);
     genvaltest_u32.set(0x99999999);
     genvaltest_u64.set(0x9999999999999999);
-    
-    arrvaltest.set(&[0x99,0x99,0x99]);
+
+    arrvaltest.set(&[0x99, 0x99, 0x99]);
 
     assert_eq!(genvaltest_u8.val(), 0x99);
     assert_eq!(genvaltest_u16.val(), 0x9999);
