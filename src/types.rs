@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use derive_header::MutViewNew;
-use std::cell::{RefCell, RefMut};
+use std::cell::{RefCell, RefMut, Ref};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
 #[allow(unused_attributes)]
@@ -72,8 +72,12 @@ impl<'a> ModSimpleVal<'a, u8> for SimpleVal<'a, u8> {
 }
 
 impl<'a, const L: usize> ArrayVal<'a, [u8; L]> {
-    pub fn mut_ref(&self) -> RefMut<&'a mut [u8]> {
+    pub fn as_mut_ref(&self) -> RefMut<&'a mut [u8]> {
         self.buf.borrow_mut()
+    }
+
+    pub fn as_ref(&self) -> Ref<&'a mut [u8]> {
+        self.buf.borrow()
     }
 
     pub fn rc_clone(&self) -> Rc<RefCell<&'a mut [u8]>> {
@@ -114,7 +118,7 @@ macro_rules! impl_oper_assign_overload {
         impl<'a, $gen> $oper_name<$gen> for SimpleVal<'a, $gen>
         where
             SimpleVal<'a, $gen>: ModSimpleVal<'a, $gen>,
-            T: $bound + $bound<Output = $gen>,
+            $gen: $bound + $bound<Output = $gen>,
         {
             fn $fname(&mut self, rhs: $gen) {
                 self.set(self.val() $oper rhs)
@@ -138,8 +142,6 @@ struct SimpleValTest<'a> {
     pub unsigned_arr: ArrayVal<'a, [u8; 4]>,
 }
 
-
-
 #[allow(dead_code)]
 const SIMPLEVAL_TESTDATA: [u8; 0x13] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13,
@@ -154,9 +156,18 @@ fn simpleval_val() {
     assert_eq_hex!(t.unsigned_16.val(), 0x0302);
     assert_eq_hex!(t.unsigned_32.val(), 0x07060504);
     assert_eq_hex!(t.unsigned_64.val(), 0x0F0E0D0C0B0A0908);
-    assert_eq_hex!(*t.unsigned_arr.mut_ref() , [0x10, 0x11, 0x12, 0x13]);
 }
-/* 
+
+#[test]
+fn arrayval_deref() {
+    let arr = [0x01, 0x02, 0x03, 0x04];
+    let mut buf = arr.clone();
+    let (t, _): (ArrayVal<[u8; 4]>, _) = ArrayVal::new(&mut buf);
+
+    assert_eq_hex!(*t.as_ref(), arr);
+}
+
+/*
 #[test]
 fn SimpleVal_set() -> Result<(), ()> {
     let data = SimpleVal_TESTDATA.to_vec();
@@ -246,5 +257,4 @@ fn SimpleVal_add() -> Result<(), ()> {
 
     Ok(())
 }
-
 */
