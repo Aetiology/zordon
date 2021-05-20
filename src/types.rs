@@ -177,56 +177,34 @@ fn arrayval_deref_mut() {
     assert_eq_hex!(*t.as_ref(), [0x0A]);
 }
 
-/*
 #[test]
-fn SimpleVal_set() -> Result<(), ()> {
-    let data = SimpleVal_TESTDATA.to_vec();
-    let mut buf = std::io::Cursor::new(data);
+fn simpleval_set() {
+    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let (mut t, _) = SimpleValTest::new(&mut buf);
 
-    let mut SimpleValtest = SimpleValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
+    t.unsigned_8.set(0x13);
+    t.unsigned_16.set(0x1112);
+    t.unsigned_32.set(0x0D0E0F10);
+    t.unsigned_64.set(0x05060708090A0B0C);
 
-    SimpleValtest
-        .unsigned_8
-        .set(&mut buf, 0x13)
-        .map_err(|e| eprintln!("{}", e))?;
-
-    SimpleValtest
-        .unsigned_16
-        .set(&mut buf, 0x1112)
-        .map_err(|e| eprintln!("{}", e))?;
-
-    SimpleValtest
-        .unsigned_32
-        .set(&mut buf, 0x0D0E0F10)
-        .map_err(|e| eprintln!("{}", e))?;
-
-    SimpleValtest
-        .unsigned_64
-        .set(&mut buf, 0x05060708090A0B0C)
-        .map_err(|e| eprintln!("{}", e))?;
-
-    SimpleValtest
-        .unsigned_u8_arr
-        .set(&mut buf, [04, 03, 02, 01])
-        .map_err(|e| eprintln!("{}", e))?;
-
-    let data_ref = buf.get_ref();
-
-    assert_eq_hex!(data_ref[0], 0x13);
-    assert_eq_hex!(data_ref[1..3], [0x12, 0x11]);
-    assert_eq_hex!(data_ref[3..7], [0x10, 0xF, 0xE, 0xD]);
-    assert_eq_hex!(data_ref[7..15], [0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5]);
-    assert_eq_hex!(data_ref[15..19], [0x4, 0x3, 0x2, 0x1]);
-
-    assert_eq_hex!(*SimpleValtest.unsigned_8, 0x13);
-    assert_eq_hex!(*SimpleValtest.unsigned_16, 0x1112);
-    assert_eq_hex!(*SimpleValtest.unsigned_32, 0x0D0E0F10);
-    assert_eq_hex!(*SimpleValtest.unsigned_64, 0x05060708090A0B0C);
-    assert_eq_hex!(*SimpleValtest.unsigned_u8_arr, [0x4, 0x3, 0x2, 0x1]);
-
-    Ok(())
+    assert_eq_hex!(buf[0], 0x13);
+    assert_eq_hex!(buf[1..3], [0x12, 0x11]);
+    assert_eq_hex!(buf[3..7], [0x10, 0xF, 0xE, 0xD]);
+    assert_eq_hex!(buf[7..15], [0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5]);
 }
 
+#[test]
+fn arrayval_set() {
+    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let (mut t, _) = SimpleValTest::new(&mut buf);
+
+    let new_data = [0x04, 0x03, 0x02, 0x01];
+
+    t.unsigned_arr.set(&new_data);
+
+    assert_eq_hex!(buf[15..19], new_data);
+}
+/*
 #[test]
 fn SimpleVal_add() -> Result<(), ()> {
     let data = SimpleVal_TESTDATA.to_vec();
