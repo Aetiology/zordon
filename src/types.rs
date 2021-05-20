@@ -1,12 +1,8 @@
-use crate::fmt_err;
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use derive_header::MutViewNew;
 use std::cell::{RefCell, RefMut};
-use std::io::prelude::*;
-use std::io::SeekFrom;
-use std::io::{Read, Write};
-use std::ops::{Add, AddAssign, Deref, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
 #[allow(unused_attributes)]
 #[macro_use]

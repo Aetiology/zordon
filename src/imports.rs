@@ -1,7 +1,5 @@
 use crate::types::*;
 use derive_header::MutViewNew;
-use std::io::prelude::*;
-use std::io::Read;
 
 #[derive(MutViewNew)]
 pub struct ImportDescriptor<'a> {

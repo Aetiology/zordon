@@ -1,7 +1,6 @@
 use crate::types::*;
 use derive_header::MutViewNew;
-use std::io::prelude::*;
-use std::io::Read;
+
 #[derive(MutViewNew)]
 pub struct DosHeader<'a> {
     pub mz_sig: SimpleVal<'a, u16>,
