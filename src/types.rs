@@ -36,10 +36,7 @@ where
     }
 }
 
-impl<'a, T> ArrayVal<'a, T>
-where
-    Self: ModArrayVal<'a>,
-{
+impl<'a, T> ArrayVal<'a, T> {
     pub fn new(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
@@ -54,10 +51,7 @@ where
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ArrayVal<'a, T>
-where
-    Self: ModArrayVal<'a>,
-{
+pub struct ArrayVal<'a, T> {
     buf: Rc<RefCell<&'a mut [u8]>>,
     _marker: std::marker::PhantomData<T>,
 }
@@ -65,12 +59,6 @@ where
 pub trait ModSimpleVal<'a, T> {
     fn val(&self) -> T;
     fn set(&mut self, v: T);
-}
-
-pub trait ModArrayVal<'a> {
-    fn mut_ref(&self) -> RefMut<&'a mut [u8]>;
-    fn rc_clone(&self) -> Rc<RefCell<&'a mut [u8]>>;
-    fn set(&mut self, src: &[u8]);
 }
 
 impl<'a> ModSimpleVal<'a, u8> for SimpleVal<'a, u8> {
@@ -83,7 +71,7 @@ impl<'a> ModSimpleVal<'a, u8> for SimpleVal<'a, u8> {
     }
 }
 
-impl<'a, const L: usize> ModArrayVal<'a> for ArrayVal<'a, [u8; L]> {
+impl<'a, const L: usize> ArrayVal<'a, [u8; L]> {
     fn mut_ref(&self) -> RefMut<&'a mut [u8]> {
         self.buf.borrow_mut()
     }
