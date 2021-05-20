@@ -4,7 +4,7 @@ use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, DeriveInput};
 
-#[proc_macro_derive(MutSlice)]
+#[proc_macro_derive(MutViewNew)]
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let struct_name = &ast.ident;
@@ -30,9 +30,9 @@ pub fn derive(input: TokenStream) -> TokenStream {
             } else if ty_string.starts_with("ArrayVal") {
                 return quote! {let (#name, buf) = ArrayVal::new(buf)};
             } else if ty_string.starts_with("Option") {
-                return quote! {#name: <#ty as ::core::default::Default>::default()};
+                return quote! {let #name = <#ty as ::core::default::Default>::default()};
             } else {
-                return quote! {#name: <#ty>::new(buf)};
+                return quote! {let (#name, buf) = <#ty>::new(buf)};
             }
         };
 

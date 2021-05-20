@@ -1,7 +1,7 @@
 use crate::fmt_err;
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
-use derive_header::MutSlice;
+use derive_header::MutViewNew;
 use std::cell::{RefCell, RefMut};
 use std::io::prelude::*;
 use std::io::SeekFrom;
@@ -194,7 +194,7 @@ fn testSimpleVal() {
 // ####
 
 #[allow(dead_code)]
-#[derive(MutSlice)]
+#[derive(MutViewNew)]
 struct SimpleValTest<'a> {
     pub unsigned_8: SimpleVal<'a, u8>,
     pub unsigned_16: SimpleVal<'a, u16>,
