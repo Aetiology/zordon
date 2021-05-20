@@ -36,7 +36,7 @@ impl<T> Deref for GenVal<T> {
 #[derive(Debug, PartialEq)]
 pub struct GenValExp<'a, T>
 where
-    Self: ModGenValExp<'a>,
+    Self: ModGenValExp<'a, T>,
 {
     val: &'a mut [u8],
     _marker: std::marker::PhantomData<T>,
@@ -44,7 +44,7 @@ where
 
 impl<'a, T> GenValExp<'a, T>
 where
-    Self: ModGenValExp<'a>,
+    Self: ModGenValExp<'a, T>,
 {
     pub fn new(a: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, r) = a.split_at_mut(std::mem::size_of::<T>());
@@ -59,14 +59,18 @@ where
     }
 }
 
-pub trait ModGenValExp<'a> {
-    type Output;
-
-    fn val(&'a self) -> Self::Output;
-    fn set(&mut self, v: Self::Output);
-    fn add(&'a mut self, v: Self::Output) where <Self as ModGenValExp<'a>>::Output: Add {
-        let a = self.val() + v;
+pub trait ModGenValExp<'a, T> {
+    fn val(&self) -> T;
+    fn set(&mut self, v: T);
+    /*
+    fn add(&mut self, v: Self::Output)
+    where
+        <Self as ModGenValExp<'a>>::Output: Add + Add<Output = Self::Output>,
+    {
+        let r = self.val() + v;
+        self.set(r)
     }
+    */
 }
 
 pub trait OperGenValExp<'a, T>
@@ -78,10 +82,8 @@ where
     fn add(&mut self, rhs: Self::Output);
 }
 
-impl<'a> ModGenValExp<'a> for GenValExp<'a, u8> {
-    type Output = u8;
-
-    fn val(&self) -> Self::Output {
+impl<'a> ModGenValExp<'a, u8> for GenValExp<'a, u8> {
+    fn val(&self) -> u8 {
         self.val[0]
     }
 
@@ -90,14 +92,18 @@ impl<'a> ModGenValExp<'a> for GenValExp<'a, u8> {
     }
 }
 
-impl<'a, const L: usize> ModGenValExp<'a> for GenValExp<'a, [u8; L]> {
-    type Output = &'a [u8];
+impl<'a, const L: usize> ModGenValExp<'a, [u8; L]> for GenValExp<'a, [u8; L]> {
+    fn val(&self) -> [u8; L] {
+        let mut buf = [0; L];
 
-    fn val(&'a self) -> Self::Output {
-        self.val
+        for i in 0..L {
+            buf[i] = self.val[i];
+        }
+
+        buf
     }
 
-    fn set(&mut self, v: Self::Output) {
+    fn set(&mut self, v: [u8; L]) {
         for i in 0..L {
             self.val[i] = v[i];
         }
@@ -107,14 +113,12 @@ impl<'a, const L: usize> ModGenValExp<'a> for GenValExp<'a, [u8; L]> {
 #[macro_export]
 macro_rules! impl_modgenval {
     ($target:tt, $type:tt, $read:ident, $write:ident, $endian:ident) => {
-        impl<'a> ModGenValExp<'a> for $target<'a, $type> {
-            type Output = $type;
-
-            fn val(&self) -> Self::Output {
+        impl<'a> ModGenValExp<'a, $type> for $target<'a, $type> {
+            fn val(&self) -> $type {
                 $endian::$read(self.val)
             }
 
-            fn set(&mut self, v: Self::Output) {
+            fn set(&mut self, v: $type) {
                 $endian::$write(self.val, v)
             }
         }
@@ -125,27 +129,27 @@ impl_modgenval!(GenValExp, u16, read_u16, write_u16, LittleEndian);
 impl_modgenval!(GenValExp, u32, read_u32, write_u32, LittleEndian);
 impl_modgenval!(GenValExp, u64, read_u64, write_u64, LittleEndian);
 
-impl<'a, T> Add<Self> for &'a GenValExp<'a, T>
+/*
+impl<'a, T> Add<Self> for GenValExp<'a, T>
 where
     GenValExp<'a, T>: ModGenValExp<'a>,
     <GenValExp<'a, T> as ModGenValExp<'a>>::Output: Add,
 {
-    type Output = <<GenValExp<'a, T> as ModGenValExp<'a>>::Output as Add<
-        <GenValExp<'a, T> as ModGenValExp<'a>>::Output,
-    >>::Output;
+    type Output = ;
 
     fn add(self, rhs: Self) -> Self::Output {
         self.val() + rhs.val()
     }
 }
+*/
 
-impl<'a, T> AddAssign<Self> for &'a GenValExp<'a, T>
+impl<'a, T> AddAssign<T> for GenValExp<'a, T>
 where
-    GenValExp<'a, T>: ModGenValExp<'a>,
-    &'a mut Self: Add,
+    GenValExp<'a, T>: ModGenValExp<'a, T>,
+    T: Add + Add<Output = T>
 {
-    fn add_assign(&mut self, rhs: Self) {
-        self.set(self + rhs)
+    fn add_assign(&mut self, rhs: T) {
+        self.set(self.val() + rhs);
     }
 }
 
@@ -188,13 +192,15 @@ fn testgenvalexp() {
     assert_eq!(genvaltest_u64.val(), 0x0303030303030303);
     assert_eq!(genvaltest_arr.val(), [0x04, 0x04, 0x04]);
 
-    assert_eq!(&genvaltest_u8 + &genvaltest_u8, 0x20);
+    genvaltest_u8 += 10;
+
+    //assert_eq!(&genvaltest_u8 + &genvaltest_u8, 0x20);
 
     genvaltest_u8.set(0x99);
     genvaltest_u16.set(0x9999);
     genvaltest_u32.set(0x99999999);
     genvaltest_u64.set(0x9999999999999999);
-    genvaltest_arr.set(&[0x99, 0x99, 0x99]);
+    genvaltest_arr.set([0x99, 0x99, 0x99]);
 
     assert_eq!(genvaltest_u8.val(), 0x99);
     assert_eq!(genvaltest_u16.val(), 0x9999);
