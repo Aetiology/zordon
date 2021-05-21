@@ -41,7 +41,7 @@ where
 }
 
 #[macro_export]
-macro_rules! impl_modsimpleVal {
+macro_rules! impl_modsimpleval {
     ($target:tt, $bytesized_type:tt, $read:ident, $write:ident) => {
         impl<'a> ModSimpleVal<'a, $bytesized_type> for SimpleVal<'a, $bytesized_type> {
             fn val(&self) -> $bytesized_type {
@@ -67,10 +67,14 @@ macro_rules! impl_modsimpleVal {
     };
 }
 
-impl_modsimpleVal!(SimpleVal, u8, read_u8, write_u8);
-impl_modsimpleVal!(SimpleVal, u16, read_u16, write_u16, LittleEndian);
-impl_modsimpleVal!(SimpleVal, u32, read_u32, write_u32, LittleEndian);
-impl_modsimpleVal!(SimpleVal, u64, read_u64, write_u64, LittleEndian);
+impl_modsimpleval!(SimpleVal, u8, read_u8, write_u8);
+impl_modsimpleval!(SimpleVal, u16, read_u16, write_u16, LittleEndian);
+impl_modsimpleval!(SimpleVal, u32, read_u32, write_u32, LittleEndian);
+impl_modsimpleval!(SimpleVal, u64, read_u64, write_u64, LittleEndian);
+impl_modsimpleval!(SimpleVal, i8, read_i8, write_i8);
+impl_modsimpleval!(SimpleVal, i16, read_i16, write_i16, LittleEndian);
+impl_modsimpleval!(SimpleVal, i32, read_i32, write_i32, LittleEndian);
+impl_modsimpleval!(SimpleVal, i64, read_i64, write_i64, LittleEndian);
 
 #[macro_export]
 macro_rules! impl_oper_assign_overload {
