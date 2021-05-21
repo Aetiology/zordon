@@ -23,16 +23,6 @@ pub trait ModSimpleVal<'a, T> {
     fn set(&mut self, v: T);
 }
 
-impl<'a> ModSimpleVal<'a, u8> for SimpleVal<'a, u8> {
-    fn val(&self) -> u8 {
-        self.val[0]
-    }
-
-    fn set(&mut self, v: u8) {
-        self.val[0] = v
-    }
-}
-
 impl<'a, T> SimpleVal<'a, T>
 where
     Self: ModSimpleVal<'a, T>,
@@ -52,6 +42,18 @@ where
 
 #[macro_export]
 macro_rules! impl_modsimpleVal {
+    ($target:tt, $bytesized_type:tt, $read:ident, $write:ident) => {
+        impl<'a> ModSimpleVal<'a, $bytesized_type> for SimpleVal<'a, $bytesized_type> {
+            fn val(&self) -> $bytesized_type {
+                self.val[0] as $bytesized_type
+            }
+
+            fn set(&mut self, v: $bytesized_type) {
+                self.val[0] = v as u8
+            }
+        }
+    };
+
     ($target:tt, $type:tt, $read:ident, $write:ident, $endian:ident) => {
         impl<'a> ModSimpleVal<'a, $type> for $target<'a, $type> {
             fn val(&self) -> $type {
@@ -65,6 +67,7 @@ macro_rules! impl_modsimpleVal {
     };
 }
 
+impl_modsimpleVal!(SimpleVal, u8, read_u8, write_u8);
 impl_modsimpleVal!(SimpleVal, u16, read_u16, write_u16, LittleEndian);
 impl_modsimpleVal!(SimpleVal, u32, read_u32, write_u32, LittleEndian);
 impl_modsimpleVal!(SimpleVal, u64, read_u64, write_u64, LittleEndian);
@@ -130,7 +133,7 @@ impl<'a, const L: usize> ArrayVal<'a, [u8; L]> {
         }
     }
 }
-
+// Tests
 #[allow(dead_code)]
 #[derive(MutViewNew)]
 struct SimpleValTest<'a> {
@@ -141,7 +144,6 @@ struct SimpleValTest<'a> {
     pub unsigned_arr: ArrayVal<'a, [u8; 4]>,
 }
 
-#[allow(dead_code)]
 #[test]
 fn simpleval_val() {
     const SIMPLEVAL_TESTDATA: [u8; 0x13] = [
@@ -229,46 +231,3 @@ impl_simpleval_assign_test!(simple_val_addassign, +=, [4, 4, 2, 4, 2, 2, 2, 4, 2
 impl_simpleval_assign_test!(simple_val_subassign, -=, [0, 0, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2]);
 impl_simpleval_assign_test!(simple_val_mulassign, *=, [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
 impl_simpleval_assign_test!(simple_val_divassign, /=, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
-
-/*
-#[test]
-fn SimpleVal_add() -> Result<(), ()> {
-    let data = SimpleVal_TESTDATA.to_vec();
-    let mut buf = std::io::Cursor::new(data);
-
-    let mut SimpleValtest = SimpleValTest::new(&mut buf).map_err(|e| eprintln!("{}", e))?;
-    const VAL_TO_ADD: u8 = 0x10;
-
-    // For the moment, we are not using Add for arrays
-
-    SimpleValtest
-        .unsigned_8
-        .add(&mut buf, VAL_TO_ADD)
-        .map_err(|e| eprintln!("{}", e))?;
-
-    SimpleValtest
-        .unsigned_16
-        .add(&mut buf, VAL_TO_ADD as u16)
-        .map_err(|e| eprintln!("{}", e))?;
-
-    SimpleValtest
-        .unsigned_32
-        .add(&mut buf, VAL_TO_ADD as u32)
-        .map_err(|e| eprintln!("{}", e))?;
-
-    SimpleValtest
-        .unsigned_64
-        .add(&mut buf, VAL_TO_ADD as u64)
-        .map_err(|e| eprintln!("{}", e))?;
-
-    let data_ref = buf.get_ref();
-
-    assert_eq_hex!(data_ref[0], 0x11);
-    assert_eq_hex!(LittleEndian::read_u16(&data_ref[1..3]), 0x312);
-    assert_eq_hex!(LittleEndian::read_u32(&data_ref[3..7]), 0x7060514);
-    assert_eq_hex!(LittleEndian::read_u64(&data_ref[7..15]), 0xF0E0D0C0B0A0918);
-    //assert_eq_hex!(data_ref[15..19], [0x4, 0x3, 0x2, 0x1]);
-
-    Ok(())
-}
-*/
