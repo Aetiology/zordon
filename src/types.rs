@@ -142,24 +142,24 @@ struct SimpleValTest<'a> {
 }
 
 #[allow(dead_code)]
-const SIMPLEVAL_TESTDATA: [u8; 0x13] = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13,
-];
-
 #[test]
 fn simpleval_val() {
+    const SIMPLEVAL_TESTDATA: [u8; 0x13] = [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13,
+    ];
+
     let mut buf = SIMPLEVAL_TESTDATA.to_vec();
     let (t, _): (SimpleValTest, _) = SimpleValTest::new(&mut buf);
 
     assert_eq_hex!(t.unsigned_8.val(), 01);
-    assert_eq_hex!(t.unsigned_16.val(), 0x0302);
-    assert_eq_hex!(t.unsigned_32.val(), 0x07060504);
-    assert_eq_hex!(t.unsigned_64.val(), 0x0F0E0D0C0B0A0908);
+    assert_eq_hex!(t.unsigned_16.val(), 0x302);
+    assert_eq_hex!(t.unsigned_32.val(), 0x7060504);
+    assert_eq_hex!(t.unsigned_64.val(), 0xF0E0D0C0B0A0908);
 }
 
 #[test]
 fn arrayval_deref() {
-    let arr = [0x01, 0x02, 0x03, 0x04];
+    let arr = [0x1, 0x2, 0x3, 0x4];
     let mut buf = arr.clone();
     let (t, _): (ArrayVal<[u8; 4]>, _) = ArrayVal::new(&mut buf);
 
@@ -168,23 +168,23 @@ fn arrayval_deref() {
 
 #[test]
 fn arrayval_deref_mut() {
-    let mut buf = [0x01];
+    let mut buf = [0];
     let (t, _): (ArrayVal<[u8; 1]>, _) = ArrayVal::new(&mut buf);
 
-    t.as_mut_ref()[0] = 0x0A;
+    t.as_mut_ref()[0] = 0xA;
 
-    assert_eq_hex!(*t.as_ref(), [0x0A]);
+    assert_eq_hex!(*t.as_ref(), [0xA]);
 }
 
 #[test]
 fn simpleval_set() {
-    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let mut buf = vec![0; 19];
     let (mut t, _) = SimpleValTest::new(&mut buf);
 
     t.unsigned_8.set(0x13);
     t.unsigned_16.set(0x1112);
-    t.unsigned_32.set(0x0D0E0F10);
-    t.unsigned_64.set(0x05060708090A0B0C);
+    t.unsigned_32.set(0xD0E0F10);
+    t.unsigned_64.set(0x5060708090A0B0C);
 
     assert_eq_hex!(buf[0], 0x13);
     assert_eq_hex!(buf[1..3], [0x12, 0x11]);
@@ -194,19 +194,43 @@ fn simpleval_set() {
 
 #[test]
 fn arrayval_set() {
-    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
-    let (mut t, _) = SimpleValTest::new(&mut buf);
+    let mut buf = vec![0; 4];
+    let (mut t, _): (ArrayVal<[u8; 4]>, &mut [u8]) = ArrayVal::new(&mut buf);
 
-    let new_data = [0x04, 0x03, 0x02, 0x01];
+    let new_data = [0x4, 0x3, 0x2, 0x1];
 
-    t.unsigned_arr.set(&new_data);
+    t.set(&new_data);
 
-    assert_eq_hex!(buf[15..19], new_data);
+    assert_eq_hex!(buf[0..4], new_data);
 }
 
+#[macro_export]
+macro_rules! impl_simpleval_assign_test {
+    ($fname:ident, $oper:tt, $result:tt) => {
+        #[test]
+        fn $fname() {
+            let mut buf = vec![2; 19];
+            let (mut t, _) = SimpleValTest::new(&mut buf);
 
+            t.unsigned_8 $oper 2;
+            t.unsigned_16 $oper 2;
+            t.unsigned_32 $oper 2;
+            t.unsigned_64 $oper 2;
 
-/* 
+            assert_eq_hex!(buf[0], $result[0]);
+            assert_eq_hex!(buf[1..3], $result[1..3]);
+            assert_eq_hex!(buf[3..7], $result[3..7]);
+            assert_eq_hex!(buf[7..15], $result[7..15]);
+        }
+    };
+}
+
+impl_simpleval_assign_test!(simple_val_addassign, +=, [4, 4, 2, 4, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2]);
+impl_simpleval_assign_test!(simple_val_subassign, -=, [0, 0, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2]);
+impl_simpleval_assign_test!(simple_val_mulassign, *=, [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+impl_simpleval_assign_test!(simple_val_divassign, /=, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+
+/*
 #[test]
 fn SimpleVal_add() -> Result<(), ()> {
     let data = SimpleVal_TESTDATA.to_vec();
@@ -240,9 +264,9 @@ fn SimpleVal_add() -> Result<(), ()> {
     let data_ref = buf.get_ref();
 
     assert_eq_hex!(data_ref[0], 0x11);
-    assert_eq_hex!(LittleEndian::read_u16(&data_ref[1..3]), 0x0312);
-    assert_eq_hex!(LittleEndian::read_u32(&data_ref[3..7]), 0x07060514);
-    assert_eq_hex!(LittleEndian::read_u64(&data_ref[7..15]), 0x0F0E0D0C0B0A0918);
+    assert_eq_hex!(LittleEndian::read_u16(&data_ref[1..3]), 0x312);
+    assert_eq_hex!(LittleEndian::read_u32(&data_ref[3..7]), 0x7060514);
+    assert_eq_hex!(LittleEndian::read_u64(&data_ref[7..15]), 0xF0E0D0C0B0A0918);
     //assert_eq_hex!(data_ref[15..19], [0x4, 0x3, 0x2, 0x1]);
 
     Ok(())
