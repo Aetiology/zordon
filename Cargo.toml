@@ -1,15 +1,12 @@
 [package]
 name = "zordon"
 version = "0.1.0"
-authors = ["Your Name <you@example.com>"]
+authors = ["Orson Mosley <orson.mosley@6point6.co.uk>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-byteorder = "1.4.2"
 assert_hex = "0.2.2"
+byteorder = "1.4.2"
 mut_view = { path = "mut_view"}
-
-[dev-dependencies]
-pretty_assertions = "0.7.1"
