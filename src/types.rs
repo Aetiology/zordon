@@ -3,7 +3,7 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt}
 use std::cell::{Ref, RefCell, RefMut};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
-///###
+
 #[derive(Debug, PartialEq)]
 pub struct SimpleVal<'a, T>
 where
@@ -12,6 +12,7 @@ where
     val: &'a mut [u8],
     _marker: std::marker::PhantomData<T>,
 }
+
 pub trait ModSimpleVal<'a, T> {
     fn val(&self) -> T;
     fn set(&mut self, v: T);
@@ -131,4 +132,3 @@ impl<'a, const L: usize> ArrayVal<'a, [u8; L]> {
         }
     }
 }
-
