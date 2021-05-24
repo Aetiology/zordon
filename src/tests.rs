@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use crate::{MutViewNew, types::*};
+use crate::{types::*, MutViewNew};
 #[allow(unused_attributes)]
 #[macro_use]
 #[allow(unused_imports)]
@@ -9,11 +9,11 @@ use assert_hex::assert_eq_hex;
 #[cfg(test)]
 #[allow(dead_code)]
 #[derive(MutViewNew)]
-struct SimpleValTest<'a> {
-    pub unsigned_8: SimpleVal<'a, u8>,
-    pub unsigned_16: SimpleVal<'a, u16>,
-    pub unsigned_32: SimpleVal<'a, u32>,
-    pub unsigned_64: SimpleVal<'a, u64>,
+struct ValTest<'a> {
+    pub unsigned_8: ByteVal<'a, u8>,
+    pub unsigned_16: MulByteVal<'a, u16>,
+    pub unsigned_32: MulByteVal<'a, u32>,
+    pub unsigned_64: MulByteVal<'a, u64>,
     pub unsigned_arr: ArrayVal<'a, [u8; 4]>,
 }
 
@@ -24,7 +24,7 @@ fn simpleval_val() {
     ];
 
     let mut buf = SIMPLEVAL_TESTDATA.to_vec();
-    let (t, _): (SimpleValTest, _) = SimpleValTest::new(&mut buf);
+    let (t, _): (ValTest, _) = ValTest::new(&mut buf);
 
     assert_eq_hex!(t.unsigned_8.val(), 01);
     assert_eq_hex!(t.unsigned_16.val(), 0x302);
@@ -54,7 +54,7 @@ fn arrayval_deref_mut() {
 #[test]
 fn simpleval_set() {
     let mut buf = vec![0; 19];
-    let (mut t, _) = SimpleValTest::new(&mut buf);
+    let (mut t, _) = ValTest::new(&mut buf);
 
     t.unsigned_8.set(0x13);
     t.unsigned_16.set(0x1112);
@@ -85,7 +85,7 @@ macro_rules! impl_simpleval_assign_test {
         #[test]
         fn $fname() {
             let mut buf = vec![2; 19];
-            let (mut t, _) = SimpleValTest::new(&mut buf);
+            let (mut t, _) = ValTest::new(&mut buf);
 
             t.unsigned_8 $oper 2;
             t.unsigned_16 $oper 2;

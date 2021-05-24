@@ -24,8 +24,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
         //TODO: Match using regex
         let converted_type = |ty_string: &str| {
-            if ty_string.starts_with("SimpleVal<") {
+            if ty_string.starts_with("ByteVal<") {
                 return quote! {let (#name, buf) = SimpleVal::new(buf)};
+            } else if ty_string.starts_with("MulByteVal<") {
+                return quote! {let (#name, buf) = ArrayVal::new(buf)};
             } else if ty_string.starts_with("ArrayVal<") {
                 return quote! {let (#name, buf) = ArrayVal::new(buf)};
             } else if ty_string.starts_with("Option") {
