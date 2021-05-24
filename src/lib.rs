@@ -10,4 +10,4 @@ pub mod sec_hdr;
 pub mod types;
 #[macro_use]
 pub mod util;
-pub use derive_header::MutViewNew;
+pub use mut_view::MutViewNew;
