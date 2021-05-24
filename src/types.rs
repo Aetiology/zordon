@@ -5,10 +5,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
 
 #[derive(Debug, PartialEq)]
-pub struct SimpleVal<'a, T>
-where
-    Self: ModSimpleVal<'a, T>,
-{
+pub struct SimpleVal<'a, T> {
     val: &'a mut [u8],
     _marker: std::marker::PhantomData<T>,
 }
@@ -18,10 +15,7 @@ pub trait ModSimpleVal<'a, T> {
     fn set(&mut self, v: T);
 }
 
-impl<'a, T> SimpleVal<'a, T>
-where
-    Self: ModSimpleVal<'a, T>,
-{
+impl<'a, T> SimpleVal<'a, T> {
     pub fn new(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
