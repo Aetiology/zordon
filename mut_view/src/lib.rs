@@ -25,9 +25,9 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
         //TODO: Match using regex
         let converted_type = |ty_string: &str| {
-            if ty_string.starts_with("SimpleVal") {
+            if ty_string.starts_with("SimpleVal<") {
                 return quote! {let (#name, buf) = SimpleVal::new(buf)};
-            } else if ty_string.starts_with("ArrayVal") {
+            } else if ty_string.starts_with("ArrayVal<") {
                 return quote! {let (#name, buf) = ArrayVal::new(buf)};
             } else if ty_string.starts_with("Option") {
                 return quote! {let #name = <#ty as ::core::default::Default>::default()};
@@ -56,35 +56,6 @@ pub fn derive(input: TokenStream) -> TokenStream {
             }
         }
     };
-    /*
-        struct SimpleValTest<'a> {
-        pub unsigned_8: SimpleVal<'a, u8>,
-        pub unsigned_16: SimpleVal<'a, u16>,
-        pub unsigned_32: SimpleVal<'a, u32>,
-        pub unsigned_64: SimpleVal<'a, u64>,
-        pub unsigned_arr: ArrayVal<'a, [u8; 4]>,
-    }
-    impl<'a> SimpleValTest<'a> {
-        pub fn new(buf: &'a mut [u8]) -> (Self, &'a mut [u8]) {
-            let (unsigned_8, leftovers) = SimpleVal::new(buf);
-            let (unsigned_16, leftovers) = SimpleVal::new(leftovers);
-            let (unsigned_32, leftovers) = SimpleVal::new(leftovers);
-            let (unsigned_64, leftovers) = SimpleVal::new(leftovers);
-            let (unsigned_arr, leftovers) = ArrayVal::new(leftovers);
-
-            (
-                Self {
-                    unsigned_8,
-                    unsigned_16,
-                    unsigned_32,
-                    unsigned_64,
-                    unsigned_arr,
-                },
-                leftovers,
-            )
-        }
-    }
-        */
 
     expanded.into()
 }
