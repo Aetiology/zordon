@@ -11,9 +11,9 @@ use assert_hex::assert_eq_hex;
 #[derive(MutViewNew)]
 struct ValTest<'a> {
     pub unsigned_8: ByteVal<'a, u8>,
-    pub unsigned_16: MulByteVal<'a, u16>,
-    pub unsigned_32: MulByteVal<'a, u32>,
-    pub unsigned_64: MulByteVal<'a, u64>,
+    pub unsigned_16: MulByteVal<'a, u16, LitEnd>,
+    pub unsigned_32: MulByteVal<'a, u32, LitEnd>,
+    pub unsigned_64: MulByteVal<'a, u64, LitEnd>,
     pub unsigned_arr: ArrayVal<'a, [u8; 4]>,
 }
 

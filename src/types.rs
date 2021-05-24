@@ -3,11 +3,23 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt}
 use std::cell::{Ref, RefCell, RefMut};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
+pub trait ModVal<'a, T> {
+    fn val(&self) -> T;
+    fn set(&mut self, v: T);
+}
+
+pub trait ModEndianVal<'a, T, E> {
+    fn val(&self) -> T;
+    fn set(&mut self, v: T);
+}
+
+pub struct LitEnd;
+pub struct BigEnd;
 
 #[derive(Debug, PartialEq)]
 pub struct ByteVal<'a, T> {
     val: &'a mut [u8],
-    _marker: std::marker::PhantomData<T>,
+    _type: std::marker::PhantomData<T>,
 }
 
 impl<'a, T> ByteVal<'a, T> {
@@ -17,7 +29,7 @@ impl<'a, T> ByteVal<'a, T> {
         (
             Self {
                 val,
-                _marker: std::marker::PhantomData::<T>,
+                _type: std::marker::PhantomData::<T>,
             },
             leftover,
         )
@@ -43,24 +55,23 @@ impl_modbyteval!(ByteVal, u8);
 impl_modbyteval!(ByteVal, i8);
 
 #[derive(Debug, PartialEq)]
-pub struct MulByteVal<'a, T> {
+pub struct MulByteVal<'a, T, E>
+{
     val: &'a mut [u8],
-    _marker: std::marker::PhantomData<T>,
+    _type: std::marker::PhantomData<T>,
+    _endian: std::marker::PhantomData<E>,
 }
 
-pub trait ModVal<'a, T> {
-    fn val(&self) -> T;
-    fn set(&mut self, v: T);
-}
 
-impl<'a, T> MulByteVal<'a, T> {
+impl<'a, T, E> MulByteVal<'a, T, E> {
     pub fn new(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
         (
             Self {
                 val,
-                _marker: std::marker::PhantomData::<T>,
+                _type: std::marker::PhantomData::<T>,
+                _endian: std::marker::PhantomData::<E>,
             },
             leftover,
         )
@@ -68,61 +79,72 @@ impl<'a, T> MulByteVal<'a, T> {
 }
 
 #[macro_export]
-macro_rules! impl_modsimpleval {
-    ($target:tt, $type:tt, $read:ident, $write:ident, $endian:ident) => {
-        impl<'a> ModVal<'a, $type> for $target<'a, $type> {
+macro_rules! impl_modmulbyteval {
+    ($target:tt, $type:tt, $endian:tt, $endianident:ident, $read:ident, $write:ident) => {
+        impl<'a> ModEndianVal<'a, $type, $endian> for $target<'a, $type, $endian> {
             fn val(&self) -> $type {
-                $endian::$read(self.val)
+                $endianident::$read(self.val)
             }
 
             fn set(&mut self, v: $type) {
-                $endian::$write(self.val, v)
+                $endianident::$write(self.val, v)
             }
         }
     };
 }
 
-impl_modsimpleval!(MulByteVal, u16, read_u16, write_u16, LittleEndian);
-impl_modsimpleval!(MulByteVal, u32, read_u32, write_u32, LittleEndian);
-impl_modsimpleval!(MulByteVal, u64, read_u64, write_u64, LittleEndian);
-impl_modsimpleval!(MulByteVal, i16, read_i16, write_i16, LittleEndian);
-impl_modsimpleval!(MulByteVal, i32, read_i32, write_i32, LittleEndian);
-impl_modsimpleval!(MulByteVal, i64, read_i64, write_i64, LittleEndian);
+impl_modmulbyteval!(MulByteVal, u16, LitEnd, LittleEndian, read_u16, write_u16);
+impl_modmulbyteval!(MulByteVal, u16, BigEnd, BigEndian, read_u16, write_u16);
+impl_modmulbyteval!(MulByteVal, u32, LitEnd, LittleEndian, read_u32, write_u32);
+impl_modmulbyteval!(MulByteVal, u32, BigEnd, BigEndian, read_u32, write_u32);
+impl_modmulbyteval!(MulByteVal, u64, LitEnd, LittleEndian, read_u64, write_u64);
+impl_modmulbyteval!(MulByteVal, u64, BigEnd, BigEndian, read_u64, write_u64);
+impl_modmulbyteval!(MulByteVal, u128, LitEnd, LittleEndian, read_u128, write_u128);
+impl_modmulbyteval!(MulByteVal, u128, BigEnd, BigEndian, read_u128, write_u128);
+
+impl_modmulbyteval!(MulByteVal, i16, LitEnd, LittleEndian, read_i16, write_i16);
+impl_modmulbyteval!(MulByteVal, i16, BigEnd, BigEndian, read_i16, write_i16);
+impl_modmulbyteval!(MulByteVal, i32, LitEnd, LittleEndian, read_i32, write_i32);
+impl_modmulbyteval!(MulByteVal, i32, BigEnd, BigEndian, read_i32, write_i32);
+impl_modmulbyteval!(MulByteVal, i64, LitEnd, LittleEndian, read_i64, write_i64);
+impl_modmulbyteval!(MulByteVal, i64, BigEnd, BigEndian, read_i64, write_i64);
+impl_modmulbyteval!(MulByteVal, i128, LitEnd, LittleEndian, read_i128, write_i128);
+impl_modmulbyteval!(MulByteVal, i128, BigEnd, BigEndian, read_i128, write_i128);
 
 #[macro_export]
 macro_rules! impl_oper_assign_overload {
-    ($oper_name:ident, $bound:ident, $fname:ident, $oper:tt, $gen:tt) => {
-        impl<'a, $gen> $oper_name<$gen> for MulByteVal<'a, $gen>
+    ($oper_name:ident, $bound:ident, $fname:ident, $oper:tt, $type:tt, $endian:tt) => {
+        impl<'a, $type, $endian> $oper_name<$type> for MulByteVal<'a, $type, $endian>
         where
-            MulByteVal<'a, $gen>: ModVal<'a, $gen>,
-            $gen: $bound + $bound<Output = $gen>,
+            MulByteVal<'a, $type, $endian>: ModEndianVal<'a, $type, $endian>,
+            $type: $bound + $bound<Output = $type>,
         {
-            fn $fname(&mut self, rhs: $gen) {
+            fn $fname(&mut self, rhs: $type) {
                 self.set(self.val() $oper rhs)
             }
         }
 
-        impl<'a, $gen> $oper_name<$gen> for ByteVal<'a, $gen>
+        impl<'a, $type> $oper_name<$type> for ByteVal<'a, $type>
         where
-            ByteVal<'a, $gen>: ModVal<'a, $gen>,
-            $gen: $bound + $bound<Output = $gen>,
+            ByteVal<'a, $type>: ModVal<'a, $type>,
+            $type: $bound + $bound<Output = $type>,
         {
-            fn $fname(&mut self, rhs: $gen) {
+            fn $fname(&mut self, rhs: $type) {
                 self.set(self.val() $oper rhs)
             }
         }
     };
 }
 
-impl_oper_assign_overload!(AddAssign, Add, add_assign, +, T);
-impl_oper_assign_overload!(SubAssign, Sub, sub_assign, -, T);
-impl_oper_assign_overload!(MulAssign, Mul, mul_assign, *, T);
-impl_oper_assign_overload!(DivAssign, Div, div_assign, /, T);
+impl_oper_assign_overload!(AddAssign, Add, add_assign, +, T, E);
+impl_oper_assign_overload!(SubAssign, Sub, sub_assign, -, T, E);
+impl_oper_assign_overload!(MulAssign, Mul, mul_assign, *, T, E);
+impl_oper_assign_overload!(DivAssign, Div, div_assign, /, T, E);
 
 #[derive(Debug, PartialEq)]
 pub struct ArrayVal<'a, T> {
     buf: Rc<RefCell<&'a mut [u8]>>,
-    _marker: std::marker::PhantomData<T>,
+    _type: std::marker::PhantomData<T>,
 }
 
 impl<'a, T> ArrayVal<'a, T> {
@@ -132,7 +154,7 @@ impl<'a, T> ArrayVal<'a, T> {
         (
             Self {
                 buf: Rc::new(RefCell::new(val)),
-                _marker: std::marker::PhantomData::<T>,
+                _type: std::marker::PhantomData::<T>,
             },
             leftover,
         )
