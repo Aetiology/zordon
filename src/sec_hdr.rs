@@ -1,5 +1,5 @@
 use crate::types::*;
-use derive_header::MutViewNew;
+use crate::MutViewNew;
 
 #[derive(MutViewNew, Debug, PartialEq)]
 pub struct SectionHeader<'a> {

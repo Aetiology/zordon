@@ -1,5 +1,5 @@
 use crate::types::*;
-use derive_header::MutViewNew;
+use crate::MutViewNew;
 
 #[derive(MutViewNew)]
 pub struct DosHeader<'a> {
