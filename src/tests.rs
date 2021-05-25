@@ -56,7 +56,7 @@ fn byteval_val() {
 
     let (b, _): (ByteVal<u8>, &mut [u8]) = ByteVal::new(&mut buf);
     assert_eq!(b.val(), U8_RESULT);
-    
+
     let (b, _): (ByteVal<i8>, &mut [u8]) = ByteVal::new(&mut buf);
     assert_eq!(b.val(), I8_RESULT);
 }
@@ -68,7 +68,7 @@ fn byteval_set() {
     let (mut b, _): (ByteVal<u8>, &mut [u8]) = ByteVal::new(&mut buf);
     b.set(U8_RESULT);
     assert_eq!(buf[0], U8_RESULT);
-    
+
     let (mut b, _): (ByteVal<i8>, &mut [u8]) = ByteVal::new(&mut buf);
     b.set(I8_RESULT);
     assert_eq!(buf[0], I8_RESULT as u8);
@@ -181,18 +181,18 @@ fn arrayval_set() {
     let (mut t, _): (ArrayVal<[u8; 4]>, &mut [u8]) = ArrayVal::new(&mut buf);
 
     let new_data = [0x4, 0x3, 0x2, 0x1];
-
     t.set(&new_data);
-
     assert_eq_hex!(buf[0..4], new_data);
 }
 
+//TODO: Test all cases
 #[macro_export]
-macro_rules! impl_simpleval_assign_test {
+macro_rules! impl_mulbyteval_assign_test {
     ($fname:ident, $oper:tt, $result:tt) => {
         #[test]
         fn $fname() {
             let mut buf = vec![2; 30];
+
             let (mut t, _) = MulValLitEndUnsignTest::new(&mut buf);
 
             t.unsigned_16 $oper 2;
@@ -206,7 +206,7 @@ macro_rules! impl_simpleval_assign_test {
     };
 }
 
-impl_simpleval_assign_test!(mulbyte_val_addassign, +=, [4, 2, 4, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2]);
-impl_simpleval_assign_test!(mulbyte_val_subassign, -=, [0, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2]);
-impl_simpleval_assign_test!(mulbyte_val_mulassign, *=, [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
-impl_simpleval_assign_test!(mulbyte_val_divassign, /=, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+impl_mulbyteval_assign_test!(mulbyte_val_addassign, +=, [4, 2, 4, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2]);
+impl_mulbyteval_assign_test!(mulbyte_val_subassign, -=, [0, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2]);
+impl_mulbyteval_assign_test!(mulbyte_val_mulassign, *=, [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+impl_mulbyteval_assign_test!(mulbyte_val_divassign, /=, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
