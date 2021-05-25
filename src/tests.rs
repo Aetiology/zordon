@@ -38,24 +38,37 @@ struct MulValBigEndSignTest<'a> {
     pub signed_128: MulByteVal<'a, i128, BigEnd>,
 }
 
+const U8_RESULT: u8 = 0x01;
 const U16_BE_RESULT: u16 = 0x0203;
 const U32_BE_RESULT: u32 = 0x04050607;
 const U64_BE_RESULT: u64 = 0x08090A0B_0C0D0E0F;
 const U128_BE_RESULT: u128 = 0x10111213_14151617_18191A1B_1C1D1E1F;
 
+const I8_RESULT: i8 = 0x01;
 const I16_BE_RESULT: i16 = 0x0203;
 const I32_BE_RESULT: i32 = 0x04050607;
 const I64_BE_RESULT: i64 = 0x08090A0B_0C0D0E0F;
 const I128_BE_RESULT: i128 = 0x10111213_14151617_18191A1B_1C1D1E1F;
 
 #[test]
+fn byteval_val() {
+    let mut buf = vec![U8_RESULT];
+
+    let (b, _): (ByteVal<u8>, &mut [u8]) = ByteVal::new(&mut buf);
+    assert_eq!(b.val(), U8_RESULT);
+    
+    let (b, _): (ByteVal<i8>, &mut [u8]) = ByteVal::new(&mut buf);
+    assert_eq!(b.val(), I8_RESULT);
+}
+
+#[test]
 fn mulbyteval_val() {
-    const SIMPLEVAL_TESTDATA: [u8; 30] = [
+    const MULBYTEVAL_TESTDATA: [u8; 30] = [
         2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
         0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
     ];
 
-    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let mut buf = MULBYTEVAL_TESTDATA.to_vec();
     let (t, _) = MulValLitEndUnsignTest::new(&mut buf);
 
     assert_eq_hex!(t.unsigned_16.val(), U16_BE_RESULT.swap_bytes());
@@ -63,7 +76,7 @@ fn mulbyteval_val() {
     assert_eq_hex!(t.unsigned_64.val(), U64_BE_RESULT.swap_bytes());
     assert_eq_hex!(t.unsigned_128.val(), U128_BE_RESULT.swap_bytes());
 
-    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let mut buf = MULBYTEVAL_TESTDATA.to_vec();
     let (t, _) = MulValBigEndUnsignTest::new(&mut buf);
 
     assert_eq_hex!(t.unsigned_16.val(), U16_BE_RESULT);
@@ -71,7 +84,7 @@ fn mulbyteval_val() {
     assert_eq_hex!(t.unsigned_64.val(), U64_BE_RESULT);
     assert_eq_hex!(t.unsigned_128.val(), U128_BE_RESULT);
 
-    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let mut buf = MULBYTEVAL_TESTDATA.to_vec();
     let (t, _) = MulValLitEndSignTest::new(&mut buf);
 
     assert_eq_hex!(t.signed_16.val(), I16_BE_RESULT.swap_bytes());
@@ -79,7 +92,7 @@ fn mulbyteval_val() {
     assert_eq_hex!(t.signed_64.val(), I64_BE_RESULT.swap_bytes());
     assert_eq_hex!(t.signed_128.val(), I128_BE_RESULT.swap_bytes());
 
-    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let mut buf = MULBYTEVAL_TESTDATA.to_vec();
     let (t, _) = MulValBigEndSignTest::new(&mut buf);
 
     assert_eq_hex!(t.signed_16.val(), I16_BE_RESULT);
