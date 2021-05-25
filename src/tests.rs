@@ -62,6 +62,19 @@ fn byteval_val() {
 }
 
 #[test]
+fn byteval_set() {
+    let mut buf = vec![0];
+
+    let (mut b, _): (ByteVal<u8>, &mut [u8]) = ByteVal::new(&mut buf);
+    b.set(U8_RESULT);
+    assert_eq!(buf[0], U8_RESULT);
+    
+    let (mut b, _): (ByteVal<i8>, &mut [u8]) = ByteVal::new(&mut buf);
+    b.set(I8_RESULT);
+    assert_eq!(buf[0], I8_RESULT as u8);
+}
+
+#[test]
 fn mulbyteval_val() {
     const MULBYTEVAL_TESTDATA: [u8; 30] = [
         2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
