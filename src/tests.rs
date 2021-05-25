@@ -7,7 +7,6 @@ use crate::{types::*, MutViewNew};
 use assert_hex::assert_eq_hex;
 
 #[cfg(test)]
-#[allow(dead_code)]
 #[derive(MutViewNew)]
 struct MulValLitEndUnsignTest<'a> {
     pub unsigned_16: MulByteVal<'a, u16, LitEnd>,
@@ -16,7 +15,6 @@ struct MulValLitEndUnsignTest<'a> {
     pub unsigned_128: MulByteVal<'a, u128, LitEnd>,
 }
 
-#[allow(dead_code)]
 #[derive(MutViewNew)]
 struct MulValBigEndUnsignTest<'a> {
     pub unsigned_16: MulByteVal<'a, u16, BigEnd>,
@@ -24,9 +22,34 @@ struct MulValBigEndUnsignTest<'a> {
     pub unsigned_64: MulByteVal<'a, u64, BigEnd>,
     pub unsigned_128: MulByteVal<'a, u128, BigEnd>,
 }
+#[derive(MutViewNew)]
+struct MulValLitEndSignTest<'a> {
+    pub signed_16: MulByteVal<'a, i16, LitEnd>,
+    pub signed_32: MulByteVal<'a, i32, LitEnd>,
+    pub signed_64: MulByteVal<'a, i64, LitEnd>,
+    pub signed_128: MulByteVal<'a, i128, LitEnd>,
+}
+
+#[derive(MutViewNew)]
+struct MulValBigEndSignTest<'a> {
+    pub signed_16: MulByteVal<'a, i16, BigEnd>,
+    pub signed_32: MulByteVal<'a, i32, BigEnd>,
+    pub signed_64: MulByteVal<'a, i64, BigEnd>,
+    pub signed_128: MulByteVal<'a, i128, BigEnd>,
+}
+
+const U16_BE_RESULT: u16 = 0x0203;
+const U32_BE_RESULT: u32 = 0x04050607;
+const U64_BE_RESULT: u64 = 0x08090A0B_0C0D0E0F;
+const U128_BE_RESULT: u128 = 0x10111213_14151617_18191A1B_1C1D1E1F;
+
+const I16_BE_RESULT: i16 = 0x0203;
+const I32_BE_RESULT: i32 = 0x04050607;
+const I64_BE_RESULT: i64 = 0x08090A0B_0C0D0E0F;
+const I128_BE_RESULT: i128 = 0x10111213_14151617_18191A1B_1C1D1E1F;
 
 #[test]
-fn mulval_val() {
+fn mulbyteval_val() {
     const SIMPLEVAL_TESTDATA: [u8; 30] = [
         2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
         0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
@@ -35,61 +58,76 @@ fn mulval_val() {
     let mut buf = SIMPLEVAL_TESTDATA.to_vec();
     let (t, _) = MulValLitEndUnsignTest::new(&mut buf);
 
-    assert_eq_hex!(t.unsigned_16.val(), 0x302);
-    assert_eq_hex!(t.unsigned_32.val(), 0x7060504);
-    assert_eq_hex!(t.unsigned_64.val(), 0xF0E0D0C0B0A0908);
-    assert_eq_hex!(t.unsigned_128.val(), 0x1F1E1D1C_1B1A1918_17161514_13121110);
+    assert_eq_hex!(t.unsigned_16.val(), U16_BE_RESULT.swap_bytes());
+    assert_eq_hex!(t.unsigned_32.val(), U32_BE_RESULT.swap_bytes());
+    assert_eq_hex!(t.unsigned_64.val(), U64_BE_RESULT.swap_bytes());
+    assert_eq_hex!(t.unsigned_128.val(), U128_BE_RESULT.swap_bytes());
 
     let mut buf = SIMPLEVAL_TESTDATA.to_vec();
     let (t, _) = MulValBigEndUnsignTest::new(&mut buf);
 
-    assert_eq_hex!(t.unsigned_16.val(), 0x0203);
-    assert_eq_hex!(t.unsigned_32.val(), 0x04050607);
-    assert_eq_hex!(t.unsigned_64.val(), 0x08090A0B_0C0D0E0F);
-    assert_eq_hex!(t.unsigned_128.val(), 0x10111213_14151617_18191A1B_1C1D1E1F);
+    assert_eq_hex!(t.unsigned_16.val(), U16_BE_RESULT);
+    assert_eq_hex!(t.unsigned_32.val(), U32_BE_RESULT);
+    assert_eq_hex!(t.unsigned_64.val(), U64_BE_RESULT);
+    assert_eq_hex!(t.unsigned_128.val(), U128_BE_RESULT);
+
+    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let (t, _) = MulValLitEndSignTest::new(&mut buf);
+
+    assert_eq_hex!(t.signed_16.val(), I16_BE_RESULT.swap_bytes());
+    assert_eq_hex!(t.signed_32.val(), I32_BE_RESULT.swap_bytes());
+    assert_eq_hex!(t.signed_64.val(), I64_BE_RESULT.swap_bytes());
+    assert_eq_hex!(t.signed_128.val(), I128_BE_RESULT.swap_bytes());
+
+    let mut buf = SIMPLEVAL_TESTDATA.to_vec();
+    let (t, _) = MulValBigEndSignTest::new(&mut buf);
+
+    assert_eq_hex!(t.signed_16.val(), I16_BE_RESULT);
+    assert_eq_hex!(t.signed_32.val(), I32_BE_RESULT);
+    assert_eq_hex!(t.signed_64.val(), I64_BE_RESULT);
+    assert_eq_hex!(t.signed_128.val(), I128_BE_RESULT);
 }
 
 #[test]
-fn mulval_set() {
+fn mulbyteval_set() {
     let mut buf = vec![0; 30];
     let (mut t, _) = MulValLitEndUnsignTest::new(&mut buf);
 
-    t.unsigned_16.set(0x1112);
-    t.unsigned_32.set(0xD0E0F10);
-    t.unsigned_64.set(0x5060708_090A0B0C);
-    t.unsigned_128.set(0x0D0E0F10_11121314_15161718_191A1B1C);
+    t.unsigned_16.set(U16_BE_RESULT);
+    t.unsigned_32.set(U32_BE_RESULT);
+    t.unsigned_64.set(U64_BE_RESULT);
+    t.unsigned_128.set(U128_BE_RESULT);
 
-    assert_eq_hex!(buf[0..2], [0x12, 0x11]);
-    assert_eq_hex!(buf[2..6], [0x10, 0xF, 0xE, 0xD]);
-    assert_eq_hex!(buf[6..14], [0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5]);
-    assert_eq_hex!(
-        buf[14..30],
-        [
-            0x1C, 0x1B, 0x1A, 0x19, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10, 0xF, 0xE,
-            0xD
-        ]
-    );
+    assert_eq_hex!(buf[0..2], U16_BE_RESULT.to_le_bytes());
+    assert_eq_hex!(buf[2..6], U32_BE_RESULT.to_le_bytes());
+    assert_eq_hex!(buf[6..14], U64_BE_RESULT.to_le_bytes());
+    assert_eq_hex!(buf[14..30], U128_BE_RESULT.to_le_bytes());
 
     let mut buf = vec![0; 30];
     let (mut t, _) = MulValBigEndUnsignTest::new(&mut buf);
 
-    t.unsigned_16.set(0x1112);
-    t.unsigned_32.set(0xD0E0F10);
-    t.unsigned_64.set(0x5060708_090A0B0C);
-    t.unsigned_128.set(0x0D0E0F10_11121314_15161718_191A1B1C);
+    t.unsigned_16.set(U16_BE_RESULT);
+    t.unsigned_32.set(U32_BE_RESULT);
+    t.unsigned_64.set(U64_BE_RESULT);
+    t.unsigned_128.set(U128_BE_RESULT);
 
-    /*
-    assert_eq_hex!(buf[0..2], [0x11, 0x12]);
-    assert_eq_hex!(buf[2..6], [0xD, 0xE, 0xF, 0x10]);
-    assert_eq_hex!(buf[6..14], [0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5]);
-    assert_eq_hex!(
-        buf[14..30],
-        [
-            0x1C, 0x1B, 0x1A, 0x19, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10, 0xF, 0xE,
-            0xD
-        ]
-    );
-    */
+    assert_eq_hex!(buf[0..2], U16_BE_RESULT.to_be_bytes());
+    assert_eq_hex!(buf[2..6], U32_BE_RESULT.to_be_bytes());
+    assert_eq_hex!(buf[6..14], U64_BE_RESULT.to_be_bytes());
+    assert_eq_hex!(buf[14..30], U128_BE_RESULT.to_be_bytes());
+
+    let mut buf = vec![0; 30];
+    let (mut t, _) = MulValLitEndSignTest::new(&mut buf);
+
+    t.signed_16.set(I16_BE_RESULT);
+    t.signed_32.set(I32_BE_RESULT);
+    t.signed_64.set(I64_BE_RESULT);
+    t.signed_128.set(I128_BE_RESULT);
+
+    assert_eq_hex!(buf[0..2], I16_BE_RESULT.to_le_bytes());
+    assert_eq_hex!(buf[2..6], I32_BE_RESULT.to_le_bytes());
+    assert_eq_hex!(buf[6..14], I64_BE_RESULT.to_le_bytes());
+    assert_eq_hex!(buf[14..30], I128_BE_RESULT.to_le_bytes());
 }
 
 #[test]
@@ -142,7 +180,7 @@ macro_rules! impl_simpleval_assign_test {
     };
 }
 
-impl_simpleval_assign_test!(simple_val_addassign, +=, [4, 2, 4, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2]);
-impl_simpleval_assign_test!(simple_val_subassign, -=, [0, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2]);
-impl_simpleval_assign_test!(simple_val_mulassign, *=, [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
-impl_simpleval_assign_test!(simple_val_divassign, /=, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+impl_simpleval_assign_test!(mulbyte_val_addassign, +=, [4, 2, 4, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2]);
+impl_simpleval_assign_test!(mulbyte_val_subassign, -=, [0, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2]);
+impl_simpleval_assign_test!(mulbyte_val_mulassign, *=, [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+impl_simpleval_assign_test!(mulbyte_val_divassign, /=, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);

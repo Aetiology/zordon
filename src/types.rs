@@ -3,6 +3,7 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt}
 use std::cell::{Ref, RefCell, RefMut};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
+
 pub trait ModVal<'a, T> {
     fn val(&self) -> T;
     fn set(&mut self, v: T);
@@ -61,7 +62,6 @@ pub struct MulByteVal<'a, T, E>
     _type: std::marker::PhantomData<T>,
     _endian: std::marker::PhantomData<E>,
 }
-
 
 impl<'a, T, E> MulByteVal<'a, T, E> {
     pub fn new(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
