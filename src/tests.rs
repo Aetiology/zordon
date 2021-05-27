@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use crate::{types::*, MutViewNew};
+use crate::{types::*, MutView};
 #[allow(unused_attributes)]
 #[macro_use]
 #[allow(unused_imports)]
@@ -7,35 +7,35 @@ use crate::{types::*, MutViewNew};
 use assert_hex::assert_eq_hex;
 
 #[cfg(test)]
-#[derive(MutViewNew)]
-struct MulValLitEndUnsignTest<'a> {
-    pub unsigned_16: MulByteVal<'a, u16, LitEnd>,
-    pub unsigned_32: MulByteVal<'a, u32, LitEnd>,
-    pub unsigned_64: MulByteVal<'a, u64, LitEnd>,
-    pub unsigned_128: MulByteVal<'a, u128, LitEnd>,
+#[derive(MutView)]
+struct LitEndUnsignTest<'a> {
+    pub unsigned_16: MulByteView<'a, u16, LitEnd>,
+    pub unsigned_32: MulByteView<'a, u32, LitEnd>,
+    pub unsigned_64: MulByteView<'a, u64, LitEnd>,
+    pub unsigned_128: MulByteView<'a, u128, LitEnd>,
 }
 
-#[derive(MutViewNew)]
-struct MulValBigEndUnsignTest<'a> {
-    pub unsigned_16: MulByteVal<'a, u16, BigEnd>,
-    pub unsigned_32: MulByteVal<'a, u32, BigEnd>,
-    pub unsigned_64: MulByteVal<'a, u64, BigEnd>,
-    pub unsigned_128: MulByteVal<'a, u128, BigEnd>,
+#[derive(MutView)]
+struct BigEndUnsignTest<'a> {
+    pub unsigned_16: MulByteView<'a, u16, BigEnd>,
+    pub unsigned_32: MulByteView<'a, u32, BigEnd>,
+    pub unsigned_64: MulByteView<'a, u64, BigEnd>,
+    pub unsigned_128: MulByteView<'a, u128, BigEnd>,
 }
-#[derive(MutViewNew)]
-struct MulValLitEndSignTest<'a> {
-    pub signed_16: MulByteVal<'a, i16, LitEnd>,
-    pub signed_32: MulByteVal<'a, i32, LitEnd>,
-    pub signed_64: MulByteVal<'a, i64, LitEnd>,
-    pub signed_128: MulByteVal<'a, i128, LitEnd>,
+#[derive(MutView)]
+struct LitEndSignTest<'a> {
+    pub signed_16: MulByteView<'a, i16, LitEnd>,
+    pub signed_32: MulByteView<'a, i32, LitEnd>,
+    pub signed_64: MulByteView<'a, i64, LitEnd>,
+    pub signed_128: MulByteView<'a, i128, LitEnd>,
 }
 
-#[derive(MutViewNew)]
-struct MulValBigEndSignTest<'a> {
-    pub signed_16: MulByteVal<'a, i16, BigEnd>,
-    pub signed_32: MulByteVal<'a, i32, BigEnd>,
-    pub signed_64: MulByteVal<'a, i64, BigEnd>,
-    pub signed_128: MulByteVal<'a, i128, BigEnd>,
+#[derive(MutView)]
+struct BigEndSignTest<'a> {
+    pub signed_16: MulByteView<'a, i16, BigEnd>,
+    pub signed_32: MulByteView<'a, i32, BigEnd>,
+    pub signed_64: MulByteView<'a, i64, BigEnd>,
+    pub signed_128: MulByteView<'a, i128, BigEnd>,
 }
 
 const U8_RESULT: u8 = 0x01;
@@ -54,10 +54,10 @@ const I128_BE_RESULT: i128 = 0x10111213_14151617_18191A1B_1C1D1E1F;
 fn byteval_val() {
     let mut buf = vec![U8_RESULT];
 
-    let (b, _): (ByteVal<u8>, &mut [u8]) = ByteVal::new(&mut buf);
+    let (b, _): (ByteView<u8>, &mut [u8]) = ByteView::mut_view(&mut buf);
     assert_eq!(b.val(), U8_RESULT);
 
-    let (b, _): (ByteVal<i8>, &mut [u8]) = ByteVal::new(&mut buf);
+    let (b, _): (ByteView<i8>, &mut [u8]) = ByteView::mut_view(&mut buf);
     assert_eq!(b.val(), I8_RESULT);
 }
 
@@ -65,11 +65,11 @@ fn byteval_val() {
 fn byteval_set() {
     let mut buf = vec![0];
 
-    let (mut b, _): (ByteVal<u8>, &mut [u8]) = ByteVal::new(&mut buf);
+    let (mut b, _): (ByteView<u8>, &mut [u8]) = ByteView::mut_view(&mut buf);
     b.set(U8_RESULT);
     assert_eq!(buf[0], U8_RESULT);
 
-    let (mut b, _): (ByteVal<i8>, &mut [u8]) = ByteVal::new(&mut buf);
+    let (mut b, _): (ByteView<i8>, &mut [u8]) = ByteView::mut_view(&mut buf);
     b.set(I8_RESULT);
     assert_eq!(buf[0], I8_RESULT as u8);
 }
@@ -82,7 +82,7 @@ fn mulbyteval_val() {
     ];
 
     let mut buf = MULBYTEVAL_TESTDATA.to_vec();
-    let (t, _) = MulValLitEndUnsignTest::new(&mut buf);
+    let (t, _) = LitEndUnsignTest::mut_view(&mut buf);
 
     assert_eq_hex!(t.unsigned_16.val(), U16_BE_RESULT.swap_bytes());
     assert_eq_hex!(t.unsigned_32.val(), U32_BE_RESULT.swap_bytes());
@@ -90,7 +90,7 @@ fn mulbyteval_val() {
     assert_eq_hex!(t.unsigned_128.val(), U128_BE_RESULT.swap_bytes());
 
     let mut buf = MULBYTEVAL_TESTDATA.to_vec();
-    let (t, _) = MulValBigEndUnsignTest::new(&mut buf);
+    let (t, _) = BigEndUnsignTest::mut_view(&mut buf);
 
     assert_eq_hex!(t.unsigned_16.val(), U16_BE_RESULT);
     assert_eq_hex!(t.unsigned_32.val(), U32_BE_RESULT);
@@ -98,7 +98,7 @@ fn mulbyteval_val() {
     assert_eq_hex!(t.unsigned_128.val(), U128_BE_RESULT);
 
     let mut buf = MULBYTEVAL_TESTDATA.to_vec();
-    let (t, _) = MulValLitEndSignTest::new(&mut buf);
+    let (t, _) = LitEndSignTest::mut_view(&mut buf);
 
     assert_eq_hex!(t.signed_16.val(), I16_BE_RESULT.swap_bytes());
     assert_eq_hex!(t.signed_32.val(), I32_BE_RESULT.swap_bytes());
@@ -106,7 +106,7 @@ fn mulbyteval_val() {
     assert_eq_hex!(t.signed_128.val(), I128_BE_RESULT.swap_bytes());
 
     let mut buf = MULBYTEVAL_TESTDATA.to_vec();
-    let (t, _) = MulValBigEndSignTest::new(&mut buf);
+    let (t, _) = BigEndSignTest::mut_view(&mut buf);
 
     assert_eq_hex!(t.signed_16.val(), I16_BE_RESULT);
     assert_eq_hex!(t.signed_32.val(), I32_BE_RESULT);
@@ -117,7 +117,7 @@ fn mulbyteval_val() {
 #[test]
 fn mulbyteval_set() {
     let mut buf = vec![0; 30];
-    let (mut t, _) = MulValLitEndUnsignTest::new(&mut buf);
+    let (mut t, _) = LitEndUnsignTest::mut_view(&mut buf);
 
     t.unsigned_16.set(U16_BE_RESULT);
     t.unsigned_32.set(U32_BE_RESULT);
@@ -130,7 +130,7 @@ fn mulbyteval_set() {
     assert_eq_hex!(buf[14..30], U128_BE_RESULT.to_le_bytes());
 
     let mut buf = vec![0; 30];
-    let (mut t, _) = MulValBigEndUnsignTest::new(&mut buf);
+    let (mut t, _) = BigEndUnsignTest::mut_view(&mut buf);
 
     t.unsigned_16.set(U16_BE_RESULT);
     t.unsigned_32.set(U32_BE_RESULT);
@@ -143,7 +143,7 @@ fn mulbyteval_set() {
     assert_eq_hex!(buf[14..30], U128_BE_RESULT.to_be_bytes());
 
     let mut buf = vec![0; 30];
-    let (mut t, _) = MulValLitEndSignTest::new(&mut buf);
+    let (mut t, _) = LitEndSignTest::mut_view(&mut buf);
 
     t.signed_16.set(I16_BE_RESULT);
     t.signed_32.set(I32_BE_RESULT);
@@ -160,7 +160,7 @@ fn mulbyteval_set() {
 fn arrayval_deref() {
     let arr = [0x1, 0x2, 0x3, 0x4];
     let mut buf = arr.clone();
-    let (t, _): (ArrayVal<[u8; 4]>, _) = ArrayVal::new(&mut buf);
+    let (t, _): (ArrayView<[u8; 4]>, _) = ArrayView::mut_view(&mut buf);
 
     assert_eq_hex!(*t.as_ref(), arr);
 }
@@ -168,7 +168,7 @@ fn arrayval_deref() {
 #[test]
 fn arrayval_deref_mut() {
     let mut buf = [0];
-    let (t, _): (ArrayVal<[u8; 1]>, _) = ArrayVal::new(&mut buf);
+    let (t, _): (ArrayView<[u8; 1]>, _) = ArrayView::mut_view(&mut buf);
 
     t.as_mut_ref()[0] = 0xA;
 
@@ -178,7 +178,7 @@ fn arrayval_deref_mut() {
 #[test]
 fn arrayval_set() {
     let mut buf = vec![0; 4];
-    let (mut t, _): (ArrayVal<[u8; 4]>, &mut [u8]) = ArrayVal::new(&mut buf);
+    let (mut t, _): (ArrayView<[u8; 4]>, &mut [u8]) = ArrayView::mut_view(&mut buf);
 
     let new_data = [0x4, 0x3, 0x2, 0x1];
     t.set(&new_data);
@@ -193,7 +193,7 @@ macro_rules! impl_mulbyteval_assign_test {
         fn $fname() {
             let mut buf = vec![2; 30];
 
-            let (mut t, _) = MulValLitEndUnsignTest::new(&mut buf);
+            let (mut t, _) = LitEndUnsignTest::mut_view(&mut buf);
 
             t.unsigned_16 $oper 2;
             t.unsigned_32 $oper 2;
