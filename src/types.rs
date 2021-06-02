@@ -1,9 +1,6 @@
 //! `zordon` types
 //!
-//! This module contains all of the custom types implemented by `zordon`.
-//! These types come in the form of three
-//! The new function for [`ByteView`], [`MulByteView`] and [`ArrayView`] take a
-//! `&'a mut [u8]` as input and return
+//! Contains all of the custom types implemented by `zordon`.
 
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -11,6 +8,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
 
+/// For getting/setting single byte values
 pub trait ModByteView<'a, T> {
     /// Return a copy of the underlying value T
     fn val(&self) -> T;
@@ -18,6 +16,7 @@ pub trait ModByteView<'a, T> {
     fn set(&mut self, v: T);
 }
 
+/// For getting/setting multi byte values
 pub trait ModMulByteView<'a, T, E> {
     /// Return a copy of the underlying value T
     fn val(&self) -> T;
@@ -25,11 +24,14 @@ pub trait ModMulByteView<'a, T, E> {
     fn set(&mut self, v: T);
 }
 
-/// Creates a little endian view when used as the E in the [`MulByteView`] data structure.
+/// Used with [`MulByteView`] as the E in MulByteView<'a, T, E> to specify a big endian view.
 pub struct LitEnd;
-/// Creates a big endian view when used as the E in the [`MulByteView`] data structure.
+/// Used with [`MulByteView`] as the E in MulByteView<'a, T, E> to specify a little endian view.
 pub struct BigEnd;
 
+/// A mutable byte view for type T. The size/length of the view is always 1.
+///
+/// For valid types for T, check [`ModByteView`] implementations.
 #[derive(Debug, PartialEq)]
 pub struct ByteView<'a, T> {
     val: &'a mut [u8],
@@ -37,7 +39,7 @@ pub struct ByteView<'a, T> {
 }
 
 impl<'a, T> ByteView<'a, T> {
-    /// Creates a tuple with a new [`ByteView`] type and the
+    /// Constructs a new [`ByteView`] and returns the leftover slice.
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
@@ -51,6 +53,7 @@ impl<'a, T> ByteView<'a, T> {
     }
 }
 
+/// Template for implementing ModByteView<'a, _>
 #[macro_export]
 macro_rules! impl_modbyteval {
     ($target:tt, $bytesized_type:tt) => {
@@ -69,6 +72,9 @@ macro_rules! impl_modbyteval {
 impl_modbyteval!(ByteView, u8);
 impl_modbyteval!(ByteView, i8);
 
+/// A mutable multi byte view for type T. The size/length of the view varies depending on T.
+///
+/// For valid types for T, check [`ModByteView`] implementations.
 #[derive(Debug, PartialEq)]
 pub struct MulByteView<'a, T, E> {
     val: &'a mut [u8],
@@ -77,6 +83,7 @@ pub struct MulByteView<'a, T, E> {
 }
 
 impl<'a, T, E> MulByteView<'a, T, E> {
+    /// Constructs a new [`MulByteView`] and returns the leftover slice.
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
@@ -91,6 +98,7 @@ impl<'a, T, E> MulByteView<'a, T, E> {
     }
 }
 
+/// Template for implementing ModMulByteView<'a, _, _>
 #[macro_export]
 macro_rules! impl_modmulbyteval {
     ($target:tt, $type:tt, $endian:tt, $endianident:ident, $read:ident, $write:ident) => {
@@ -138,6 +146,7 @@ impl_modmulbyteval!(
 );
 impl_modmulbyteval!(MulByteView, i128, BigEnd, BigEndian, read_i128, write_i128);
 
+/// Template for implementing oper assign overloading
 #[macro_export]
 macro_rules! impl_oper_assign_overload {
     ($oper_name:ident, $bound:ident, $fname:ident, $oper:tt, $type:tt, $endian:tt) => {
@@ -168,6 +177,7 @@ impl_oper_assign_overload!(SubAssign, Sub, sub_assign, -, T, E);
 impl_oper_assign_overload!(MulAssign, Mul, mul_assign, *, T, E);
 impl_oper_assign_overload!(DivAssign, Div, div_assign, /, T, E);
 
+/// A mutable array view for type [u8; L] where L is a const.
 #[derive(Debug, PartialEq)]
 pub struct ArrayView<'a, T> {
     buf: Rc<RefCell<&'a mut [u8]>>,
@@ -175,6 +185,7 @@ pub struct ArrayView<'a, T> {
 }
 
 impl<'a, T> ArrayView<'a, T> {
+    /// Constructs a new [`ArrayView`] and returns the leftover slice.
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
