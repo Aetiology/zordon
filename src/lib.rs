@@ -32,6 +32,8 @@
 //! [`ByteView`]: types::ByteView
 //! [`MulByteView`]: types::MulByteView
 //! [`ArrayView`]: types::ArrayView
+//! [`ModByteView`]: types::ModByteView
+//! [`ModMulByteView`]: types::ModMulByteView
 //!
 //! #### Deriving `mut_view`
 //! ```
@@ -80,12 +82,14 @@
 //! is the remaining slice.
 //!
 //! #### Setting/Getting values
-//!
 //! ##### [`ByteView`] and [`MulByteView`]
-//! To retrive/set the underlying value, the val/set trait methods must be called:
+//! To retrive/set the underlying value, the val/set trait methods must be called.
+//! - For [`ByteView`] the [`ModByteView`] trait must be in scope.
+//! - For [`MulByteView`] the [`ModMulByteView`] trait must be in scope
 //! ```
-//! # use mut_view::MutView;
-//! # use zordon::types::{ByteView, MulByteView, ArrayView, BigEnd, ModByteView, ModMulByteView};
+//! use mut_view::MutView;
+//! use zordon::types::{ByteView, ModByteView};
+//!
 //! #[derive(MutView)]
 //! struct Example<'a> {
 //!     u8_f: ByteView<'a, u8>,   
