@@ -8,30 +8,30 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::rc::Rc;
 
-/// For getting/setting single byte values
+/// For getting/setting single byte values.
 pub trait ModByteView<'a, T> {
-    /// Return a copy of the underlying value T
+    /// Return a copy of the underlying value T.
     fn val(&self) -> T;
-    /// Set the underlying value to T
+    /// Set the underlying value to T.
     fn set(&mut self, v: T);
 }
 
-/// For getting/setting multi byte values
+/// For getting/setting multi byte values.
 pub trait ModMulByteView<'a, T, E> {
-    /// Return a copy of the underlying value T
+    /// Return a copy of the underlying value T.
     fn val(&self) -> T;
-    /// Set the underlying value to T
+    /// Set the underlying value to T.
     fn set(&mut self, v: T);
 }
 
-/// Used with [`MulByteView`] as the E in MulByteView<'a, T, E> to specify a big endian view.
-pub struct LitEnd;
 /// Used with [`MulByteView`] as the E in MulByteView<'a, T, E> to specify a little endian view.
+pub struct LitEnd;
+/// Used with [`MulByteView`] as the E in MulByteView<'a, T, E> to specify a big endian view.
 pub struct BigEnd;
 
-/// A mutable byte view for type T. The size/length of the view is always 1.
+/// A mutable byte view for type T where the length of the view is always 1.
 ///
-/// For valid types for T, check [`ModByteView`] implementations.
+/// Check [`ModByteView`] implementations for valid T isomorphisms.
 #[derive(Debug, PartialEq)]
 pub struct ByteView<'a, T> {
     val: &'a mut [u8],
@@ -72,7 +72,7 @@ macro_rules! impl_modbyteval {
 impl_modbyteval!(ByteView, u8);
 impl_modbyteval!(ByteView, i8);
 
-/// A mutable multi byte view for type T. The size/length of the view varies depending on T.
+/// A mutable multi byte view for type T where the length of the view varies depending on T.
 ///
 /// For valid types for T, check [`ModByteView`] implementations.
 #[derive(Debug, PartialEq)]
@@ -83,7 +83,7 @@ pub struct MulByteView<'a, T, E> {
 }
 
 impl<'a, T, E> MulByteView<'a, T, E> {
-    /// Constructs a new [`MulByteView`] and returns the leftover slice.
+    /// Returns a [`MulByteView`] and leftover slice.
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
@@ -98,7 +98,7 @@ impl<'a, T, E> MulByteView<'a, T, E> {
     }
 }
 
-/// Template for implementing ModMulByteView<'a, _, _>
+/// Template for implementing ModMulByteView<'a, _, _>.
 #[macro_export]
 macro_rules! impl_modmulbyteval {
     ($target:tt, $type:tt, $endian:tt, $endianident:ident, $read:ident, $write:ident) => {
@@ -185,7 +185,7 @@ pub struct ArrayView<'a, T> {
 }
 
 impl<'a, T> ArrayView<'a, T> {
-    /// Constructs a new [`ArrayView`] and returns the leftover slice.
+    /// Returns an [`ArrayView`] and leftover slice.
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
@@ -200,22 +200,22 @@ impl<'a, T> ArrayView<'a, T> {
 }
 
 impl<'a, const L: usize> ArrayView<'a, [u8; L]> {
-    /// Get a mutable reference to the array
+    /// Returns a mutable reference to the array.
     pub fn as_mut_ref(&self) -> RefMut<&'a mut [u8]> {
         self.buf.borrow_mut()
     }
 
-    /// Get a reference to the array
+    /// Returns a reference to the array.
     pub fn as_ref(&self) -> Ref<&'a mut [u8]> {
         self.buf.borrow()
     }
 
-    /// Return a reference counted pointer
+    /// Retruns a clone of the reference counted pointer.
     pub fn rc_clone(&self) -> Rc<RefCell<&'a mut [u8]>> {
         self.buf.clone()
     }
 
-    /// Copy bytes from &[u8] source to the array
+    /// Copies bytes from a `&[u8]` source to the underlying array.
     pub fn set(&mut self, src: &[u8]) {
         let mut dst = self.buf.borrow_mut();
 

@@ -185,8 +185,6 @@ fn arrayval_set() {
     assert_eq_hex!(buf[0..4], new_data);
 }
 
-//TODO: Test all cases
-#[macro_export]
 macro_rules! impl_mulbyteval_assign_test {
     ($fname:ident, $oper:tt, $result:tt) => {
         #[test]
