@@ -1,6 +1,6 @@
 [package]
 name = "zordon"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Orson Mosley <orson.mosley@6point6.co.uk>"]
 edition = "2018"
 description = "Simple low-level abstractions for zero-copy parsing and mutation"
