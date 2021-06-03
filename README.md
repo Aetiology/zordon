@@ -4,4 +4,4 @@
 
 `zordon` provides simple low-level abstractions for zero-copy parsing and mutation.
 
-For usage examples and documentation check out: 
+For usage examples and documentation check out: [docs](https://docs.rs/zordon/0.1.1/zordon/)
