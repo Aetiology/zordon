@@ -13,4 +13,4 @@ catergories = ["data-structures", "parsing"]
 [dependencies]
 assert_hex = "0.2.2"
 byteorder = "1.4.2"
-mut_view = { path = "mut_view", version = "0.1.0"}
+mutview = "0.1.0"

@@ -187,4 +187,4 @@
 
 mod tests;
 pub mod types;
-pub use mut_view::MutView;
+pub use mutview::MutView;
