@@ -31,7 +31,7 @@ pub struct BigEnd;
 
 /// A mutable byte view for type T where the length of the view is always 1.
 ///
-/// Check [`ModByteView`] implementations for valid T isomorphisms.
+/// Check [`ModByteView`] implementations for valid T monomorphisms. 
 #[derive(Debug, PartialEq)]
 pub struct ByteView<'a, T> {
     val: &'a mut [u8],
