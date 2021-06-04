@@ -40,6 +40,10 @@ pub struct ByteView<'a, T> {
 
 impl<'a, T> ByteView<'a, T> {
     /// Constructs a new [`ByteView`] and returns the leftover slice.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `T.len() > arr.len()`
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
@@ -84,6 +88,10 @@ pub struct MulByteView<'a, T, E> {
 
 impl<'a, T, E> MulByteView<'a, T, E> {
     /// Returns a [`MulByteView`] and leftover slice.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `T.len() > arr.len()`
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
@@ -186,6 +194,10 @@ pub struct ArrayView<'a, T> {
 
 impl<'a, T> ArrayView<'a, T> {
     /// Returns an [`ArrayView`] and leftover slice.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `T.len() > arr.len()`
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
         let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
 
