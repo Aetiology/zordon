@@ -25,8 +25,10 @@ pub trait ModMulByteView<'a, T, E> {
 }
 
 /// Marker type used with [`MulByteView`] as the E in MulByteView<'a, T, E> to specify a little endian view.
+#[derive(Debug)]
 pub struct LitEnd;
 /// Marker type used with [`MulByteView`] as the E in MulByteView<'a, T, E> to specify a big endian view.
+#[derive(Debug)]
 pub struct BigEnd;
 
 /// A mutable byte view for type T where the length of the view is always 1.
