@@ -106,6 +106,8 @@ impl<'a, T, E> MulByteView<'a, T, E> {
     }
 }
 
+
+
 /// Template for implementing ModMulByteView<'a, _, _>.
 #[macro_export]
 macro_rules! impl_modmulbyteval {

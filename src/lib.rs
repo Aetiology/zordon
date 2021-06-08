@@ -197,3 +197,9 @@
 mod tests;
 pub mod types;
 pub use mutview::MutView;
+
+/// Import prelude to get everything needed into scope
+pub mod prelude {
+    pub use mutview::MutView;
+    pub use crate::types::*;
+}
