@@ -1,6 +1,6 @@
 [package]
 name = "zordon"
-version = "0.1.8"
+version = "0.1.9"
 authors = ["Orson Mosley <orson.mosley@6point6.co.uk>"]
 edition = "2018"
 description = "Simple low-level abstractions for zero-copy parsing and mutation"
@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/Aetiology/zordon"
 license-file = "LICENSE"
 keywords = ["zero-copy", "parsing"]
-catergories = ["data-structures", "parsing"]
+categories = ["data-structures", "parsing"]
 
 [dependencies]
 assert_hex = "0.2.2"
