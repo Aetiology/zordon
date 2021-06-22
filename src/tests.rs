@@ -185,6 +185,35 @@ fn arrayval_set() {
     assert_eq_hex!(buf[0..4], new_data);
 }
 
+#[test]
+fn vararrayval_deref() {
+    let arr = &mut [0x1 as u8, 0x2, 0x3, 0x4] as &mut [u8];
+    let buf = arr.iter().map(|x| x.clone()).collect::<Vec<u8>>();
+    let (t, _): (VarArrayView<u8>, _) = VarArrayView::mut_view(arr, arr.len());
+
+    assert_eq_hex!(*t.as_ref(), buf);
+}
+
+#[test]
+fn vararrayval_deref_mut() {
+    let buf = &mut [0 as u8] as &mut [u8];
+    let (t, _): (VarArrayView<u8>, _) = VarArrayView::mut_view(buf, buf.len());
+
+    t.as_mut_ref()[0] = 0xA;
+
+    assert_eq_hex!(*t.as_ref(), [0xA]);
+}
+
+#[test]
+fn vararrayval_set() {
+    let buf = &mut [0 as u8; 4] as &mut [u8];
+    let (mut t, _): (VarArrayView<u8>, _) = VarArrayView::mut_view(buf, buf.len());
+
+    let new_data = [0x4, 0x3, 0x2, 0x1];
+    t.set(&new_data);
+    assert_eq_hex!(buf[0..4], new_data);
+}
+
 macro_rules! impl_mulbyteval_assign_test {
     ($fname:ident, $oper:tt, $result:tt) => {
         #[test]

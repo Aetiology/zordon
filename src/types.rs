@@ -240,3 +240,59 @@ impl<'a, const L: usize> ArrayView<'a, [u8; L]> {
         }
     }
 }
+
+/// A mutable array view for type &mut [T] (Types other than u8 should not be used for now).
+///
+/// Due to the length not being known at compile time, this type *cannot* be used with the
+/// mutview derive macro.
+#[derive(Debug, PartialEq)]
+pub struct VarArrayView<'a, T> {
+    buf: Rc<RefCell<&'a mut [u8]>>,
+    _type: std::marker::PhantomData<T>,
+}
+
+impl<'a, T> VarArrayView<'a, T> {
+    /// Returns an [`VarArrayView`] and leftover slice.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `len > arr.len()`
+    pub fn mut_view(arr: &'a mut [u8], view_len: usize) -> (Self, &'a mut [u8]) {
+        let (val, leftover) = arr.split_at_mut(view_len * std::mem::size_of::<T>());
+
+        (
+            Self {
+                buf: Rc::new(RefCell::new(val)),
+                _type: std::marker::PhantomData::<T>,
+            },
+            leftover,
+        )
+    }
+}
+
+impl<'a, T> VarArrayView<'a, T> {
+    /// Returns a mutable reference to the array.
+    pub fn as_mut_ref(&self) -> RefMut<&'a mut [u8]> {
+        self.buf.borrow_mut()
+    }
+
+    /// Returns a reference to the array.
+    pub fn as_ref(&self) -> Ref<&'a mut [u8]> {
+        self.buf.borrow()
+    }
+
+    /// Returns a clone of the reference counted pointer.
+    pub fn rc_clone(&self) -> Rc<RefCell<&'a mut [u8]>> {
+        self.buf.clone()
+    }
+
+    /// Copies bytes from a `&[u8]` source to the underlying array.
+    pub fn set(&mut self, src: &[u8]) {
+        let len = self.buf.borrow().len();
+        let mut dst = self.buf.borrow_mut();
+
+        for i in 0..len {
+            dst[i] = src[i]
+        }
+    }
+}

@@ -18,8 +18,7 @@
 //!
 //! ## Simple example
 //! ```
-//! use mut_view::MutView;
-//! use zordon::types::{ByteView, MulByteView, ArrayView, BigEnd, ModByteView, ModMulByteView};
+//! use zordon::prelude::*;
 //!
 //! #[derive(MutView)]
 //! struct Example<'a> {
@@ -29,7 +28,7 @@
 //! }
 //!
 //! fn main() {
-//!   let mut input_buf = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05];
+//!   let mut input_buf = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07];
 //!   let (mut example, _) = Example::mut_view(&mut input_buf);
 //!
 //!   assert_eq!(example.u8_f.val(), 0x00);    
@@ -41,19 +40,19 @@
 //! [`ByteView`]: types::ByteView
 //! [`MulByteView`]: types::MulByteView
 //! [`ArrayView`]: types::ArrayView
+//! [`VarArrayView`]: types::VarArrayView
 //! [`ModByteView`]: types::ModByteView
 //! [`ModMulByteView`]: types::ModMulByteView
 //!
 //! #### Deriving `mut_view`
 //! ```
-//! # use mut_view::MutView;
-//! # use zordon::types::{ByteView, MulByteView, ArrayView, BigEnd, ModByteView, ModMulByteView};
-//!  #[derive(MutView)]
-//!  struct Example<'a> {
-//!     u8_f: ByteView<'a, u8>,   
-//!     u16_f: MulByteView<'a, u16, BigEnd>,   
-//!     arr_f: ArrayView<'a, [u8; 3]>,
-//!  }
+//! # use zordon::prelude::*;
+//! #[derive(MutView)]
+//! struct Example<'a> {
+//!    u8_f: ByteView<'a, u8>,   
+//!    u16_f: MulByteView<'a, u16, BigEnd>,   
+//!    arr_f: ArrayView<'a, [u8; 3]>,
+//! }
 //! ```
 //! The derive macro [`MutView`] implements a `mut_view` method for the `Example` struct.
 //!
@@ -66,8 +65,7 @@
 //!
 //! #### Instantiating the struct
 //! ```
-//! # use mut_view::MutView;
-//! # use zordon::types::{ByteView, MulByteView, ArrayView, BigEnd, ModByteView, ModMulByteView};
+//! # use zordon::prelude::*;
 //! # #[derive(MutView)]
 //! # struct Example<'a> {
 //! #    u8_f: ByteView<'a, u8>,   
@@ -96,13 +94,12 @@
 //! - For [`ByteView`] the [`ModByteView`] trait must be in scope.
 //! - For [`MulByteView`] the [`ModMulByteView`] trait must be in scope
 //! ```
-//! use mut_view::MutView;
-//! use zordon::types::{ByteView, ModByteView};
+//! use zordon::prelude::*;
 //!
 //! #[derive(MutView)]
 //! struct Example<'a> {
 //!     u8_f: ByteView<'a, u8>,   
-//!  }
+//! }
 //!
 //! fn main() {
 //!     let mut input_buf = [0x00];
@@ -119,12 +116,11 @@
 //! Retriving the underlying value for [`ArrayView`] works slightly differently. Rather than returning
 //! the data, a mutable/immutable reference to the data is returned.
 //! ```
-//! # use mut_view::MutView;
-//! # use zordon::types::{ByteView, MulByteView, ArrayView, BigEnd, ModByteView, ModMulByteView};
+//! # use zordon::prelude::*;
 //! #[derive(MutView)]
 //! struct Example<'a> {
 //!     arr_f: ArrayView<'a, [u8; 3]>,   
-//!  }
+//! }
 //!
 //! fn main() {
 //!     let buf = [0x00, 0x01, 0x02];
@@ -148,8 +144,7 @@
 //! ```
 //! ## Composite example
 //! ```
-//! use mut_view::MutView;
-//! use zordon::types::{ByteView, MulByteView, ArrayView, BigEnd, ModByteView, ModMulByteView};
+//! use zordon::prelude::*;
 //!
 //! #[derive(MutView)]
 //! struct ExampleA<'a> {
@@ -180,6 +175,19 @@
 //!   assert_eq!(input_buf[0], 0xFF);
 //! }
 //! ```
+//! ## [`VarArrayView`] example
+//! This type creates a mutable array view which for a non compile time known length.
+//! ```
+//! use zordon::prelude::*;
+//!
+//! fn main() {
+//!    let arr = &mut [0x1 as u8, 0x2, 0x3, 0x4] as &mut [u8];
+//!    let buf = arr.iter().map(|x| x.clone()).collect::<Vec<u8>>();
+//!    let (t, _): (VarArrayView<u8>, _) = VarArrayView::mut_view(arr, arr.len());
+//!
+//!    assert_eq!(*t.as_ref(), buf);
+//! }
+//! ```
 //! ## More examples
 //!
 //! The crate (NOT PUBLISHED YET) uses zordon for zero-copy parsing of the [PE](https://en.wikipedia.org/wiki/Portable_Executable) format.
@@ -187,7 +195,7 @@
 //! ## Features
 //!
 //! - Zero-copy -- Original buffer is split into mutable slices
-//! - Able to parse the following types: `[u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, [u8; _]]`
+//! - Able to parse the following types: `[u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, [u8; _], &mut [u8]]`
 //! - The types u16..u128 and i16..i128 can be treated as little endian or big endian
 //! - Auto implementation of `mut_view` for structs via the [`MutView`] derive macro.
 //!

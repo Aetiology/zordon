@@ -1,6 +1,6 @@
 [package]
 name = "zordon"
-version = "0.1.9"
+version = "0.1.10"
 authors = ["Orson Mosley <orson.mosley@6point6.co.uk>"]
 edition = "2018"
 description = "Simple low-level abstractions for zero-copy parsing and mutation"
@@ -13,4 +13,4 @@ categories = ["data-structures", "parsing"]
 [dependencies]
 assert_hex = "0.2.2"
 byteorder = "1.4.2"
-mutview = "0.1.0"
+mutview = "0.1.2"
