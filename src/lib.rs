@@ -1,6 +1,7 @@
 #![warn(missing_docs)]
 // #![doc(test(no_crate_inject))]
 #![allow(dead_code)]
+
 //! # Zordon
 //!
 //! ![zordan_image](https://upload.wikimedia.org/wikipedia/en/b/bc/Zordon_power_rangers.jpg)
@@ -202,6 +203,13 @@
 //!
 //!
 
+#![no_std]
+#[cfg(feature = "std_unit_tests")]
+extern crate std;
+
+extern crate alloc;
+
+#[cfg(feature = "std_unit_tests")]
 mod tests;
 pub mod types;
 pub use mutview::MutView;

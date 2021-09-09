@@ -2,11 +2,11 @@
 //!
 //! Contains all of the custom types implemented by `zordon`.
 
+use alloc::rc::Rc;
 #[allow(unused_imports)]
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
-use std::cell::{Ref, RefCell, RefMut};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
-use std::rc::Rc;
+use core::cell::{Ref, RefCell, RefMut};
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 /// For getting/setting single byte values.
 pub trait ModByteView<'a, T> {
@@ -33,11 +33,11 @@ pub struct BigEnd;
 
 /// A mutable byte view for type T where the length of the view is always 1.
 ///
-/// Check [`ModByteView`] implementations for valid T monomorphisms. 
+/// Check [`ModByteView`] implementations for valid T monomorphisms.
 #[derive(Debug, PartialEq)]
 pub struct ByteView<'a, T> {
     val: &'a mut [u8],
-    _type: std::marker::PhantomData<T>,
+    _type: core::marker::PhantomData<T>,
 }
 
 impl<'a, T> ByteView<'a, T> {
@@ -47,12 +47,12 @@ impl<'a, T> ByteView<'a, T> {
     ///
     /// Panics if `T.len() > arr.len()`
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
-        let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
+        let (val, leftover) = arr.split_at_mut(core::mem::size_of::<T>());
 
         (
             Self {
                 val,
-                _type: std::marker::PhantomData::<T>,
+                _type: core::marker::PhantomData::<T>,
             },
             leftover,
         )
@@ -84,8 +84,8 @@ impl_modbyteval!(ByteView, i8);
 #[derive(Debug, PartialEq)]
 pub struct MulByteView<'a, T, E> {
     val: &'a mut [u8],
-    _type: std::marker::PhantomData<T>,
-    _endian: std::marker::PhantomData<E>,
+    _type: core::marker::PhantomData<T>,
+    _endian: core::marker::PhantomData<E>,
 }
 
 impl<'a, T, E> MulByteView<'a, T, E> {
@@ -95,20 +95,18 @@ impl<'a, T, E> MulByteView<'a, T, E> {
     ///
     /// Panics if `T.len() > arr.len()`
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
-        let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
+        let (val, leftover) = arr.split_at_mut(core::mem::size_of::<T>());
 
         (
             Self {
                 val,
-                _type: std::marker::PhantomData::<T>,
-                _endian: std::marker::PhantomData::<E>,
+                _type: core::marker::PhantomData::<T>,
+                _endian: core::marker::PhantomData::<E>,
             },
             leftover,
         )
     }
 }
-
-
 
 /// Template for implementing ModMulByteView<'a, _, _>.
 #[macro_export]
@@ -193,7 +191,7 @@ impl_oper_assign_overload!(DivAssign, Div, div_assign, /, T, E);
 #[derive(Debug, PartialEq)]
 pub struct ArrayView<'a, T> {
     buf: Rc<RefCell<&'a mut [u8]>>,
-    _type: std::marker::PhantomData<T>,
+    _type: core::marker::PhantomData<T>,
 }
 
 impl<'a, T> ArrayView<'a, T> {
@@ -203,12 +201,12 @@ impl<'a, T> ArrayView<'a, T> {
     ///
     /// Panics if `T.len() > arr.len()`
     pub fn mut_view(arr: &'a mut [u8]) -> (Self, &'a mut [u8]) {
-        let (val, leftover) = arr.split_at_mut(std::mem::size_of::<T>());
+        let (val, leftover) = arr.split_at_mut(core::mem::size_of::<T>());
 
         (
             Self {
                 buf: Rc::new(RefCell::new(val)),
-                _type: std::marker::PhantomData::<T>,
+                _type: core::marker::PhantomData::<T>,
             },
             leftover,
         )
@@ -248,7 +246,7 @@ impl<'a, const L: usize> ArrayView<'a, [u8; L]> {
 #[derive(Debug, PartialEq)]
 pub struct VarArrayView<'a, T> {
     buf: Rc<RefCell<&'a mut [u8]>>,
-    _type: std::marker::PhantomData<T>,
+    _type: core::marker::PhantomData<T>,
 }
 
 impl<'a, T> VarArrayView<'a, T> {
@@ -258,12 +256,12 @@ impl<'a, T> VarArrayView<'a, T> {
     ///
     /// Panics if `len > arr.len()`
     pub fn mut_view(arr: &'a mut [u8], view_len: usize) -> (Self, &'a mut [u8]) {
-        let (val, leftover) = arr.split_at_mut(view_len * std::mem::size_of::<T>());
+        let (val, leftover) = arr.split_at_mut(view_len * core::mem::size_of::<T>());
 
         (
             Self {
                 buf: Rc::new(RefCell::new(val)),
-                _type: std::marker::PhantomData::<T>,
+                _type: core::marker::PhantomData::<T>,
             },
             leftover,
         )

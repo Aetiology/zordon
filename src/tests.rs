@@ -5,8 +5,9 @@ use crate::{types::*, MutView};
 #[allow(unused_imports)]
 #[macro_use]
 use assert_hex::assert_eq_hex;
+use std::vec::Vec;
+use std::vec;
 
-#[cfg(test)]
 #[derive(MutView)]
 struct LitEndUnsignTest<'a> {
     pub unsigned_16: MulByteView<'a, u16, LitEnd>,
@@ -50,6 +51,8 @@ const I32_BE_RESULT: i32 = 0x04050607;
 const I64_BE_RESULT: i64 = 0x08090A0B_0C0D0E0F;
 const I128_BE_RESULT: i128 = 0x10111213_14151617_18191A1B_1C1D1E1F;
 
+
+#[cfg(test)]
 #[test]
 fn byteval_val() {
     let mut buf = vec![U8_RESULT];
