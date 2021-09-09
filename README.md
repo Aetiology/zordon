@@ -2,7 +2,7 @@
 
 ![zordan_image](https://upload.wikimedia.org/wikipedia/en/b/bc/Zordon_power_rangers.jpg)
 
-`zordon` provides simple low-level abstractions for zero-copy parsing and mutation.
+`zordon` provides simple low-level abstractions for zero-copy parsing and mutation. It is a no_std crate with alloc.
 
 `zordon` types allow a single mutable u8 buffer to be treated as
 a series of u8-u128, i8-i128 or [u8; _] values without the need to copy data in the original buffer. Setting, getting and
